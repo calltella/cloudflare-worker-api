@@ -34,10 +34,9 @@
     "global.d.ts", // typescript にCSSを読ませる
     "db/**/*.ts",
     "src/**/*.ts",
+    "app/**/*.ts",
     "app/**/*.tsx",
     "lib/**/*.ts",
-    "api/**/*.ts",
-    "api/**/*.tsx",
     ".next/types/**/*.ts",
     "next.config.mjs",
     ".next/dev/types/**/*.ts",
