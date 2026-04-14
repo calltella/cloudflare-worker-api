@@ -26,13 +26,6 @@ export async function getUserFromDb(
 }
 
 /**
- * userId から account を取得
- */
-export async function getAccountFromDb(userId: string) {
-  return await getAccount(userId);
-}
-
-/**
  * 
  * ログイン履歴保存
  */

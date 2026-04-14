@@ -2,7 +2,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
-import { getUserFromDb, getAccountFromDb } from "@/lib/utils/auth";
+import { getUserFromDb } from "@/lib/utils/auth";
 import { getRequestMeta } from "@/lib/auth.server";
 import type { UserRole } from "@/types/user";
 import type { User, NewLoginHistory } from "@/db/schema/users";
@@ -64,13 +64,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      const userId = token.id as string;
-      const account = await getAccountFromDb(userId)
       session.user.id = token.id as string;
       session.user.role = token.role as UserRole;
       session.user.avatarUrl = token.avatarUrl as string | undefined;
-      // session.user.themeMode = account?.themeMode ?? "light"; next-themesを使うので未使用
-      //session.user.themeColor = account?.colorThemes ?? "default";
       return session;
     },
   },

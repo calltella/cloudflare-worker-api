@@ -2,12 +2,9 @@
 
 // src/service/notes.service.ts
 import * as dz from "drizzle-orm";
-import bcrypt from "bcryptjs";
 import { getDB } from "@/lib/utils/db";
-import { users, account, aplineUsers, loginHistories, sessions } from "@/db/schema/users";
+import { users, account, loginHistories, sessions } from "@/db/schema/users";
 import { type NewLoginHistory } from "@/db/schema/users";
-import type { ColorThemeKey } from "@/types/colorTheme";
-import type { ThemeMode } from "@/types/user";
 import { auth } from "@/lib/auth.config";
 import { getUserSettings, putUserSettings } from "@/src/service/settings.service";
 import { getJstDateTimeString } from "@/lib/utils/date";
@@ -98,56 +95,56 @@ export async function findUserByEmail(email: string) {
 /**
  * User一覧取得
  */
-export async function getUserLists() {
-  const database = await db();
+// export async function getUserLists() {
+//   const database = await db();
 
-  const result = await database
-    .select({
-      id: users.id,
-      email: users.email,
-      name: users.name,
-      role: users.role,
-      isActive: users.isActive,
-      createdAt: users.createdAt,
-      updatedAt: users.updatedAt,
-    })
-    .from(users)
-    .where(dz.isNull(users.deletedAt))
-    .orderBy(users.createdAt)
+//   const result = await database
+//     .select({
+//       id: users.id,
+//       email: users.email,
+//       name: users.name,
+//       role: users.role,
+//       isActive: users.isActive,
+//       createdAt: users.createdAt,
+//       updatedAt: users.updatedAt,
+//     })
+//     .from(users)
+//     .where(dz.isNull(users.deletedAt))
+//     .orderBy(users.createdAt)
 
-  return result ?? null;
-}
+//   return result ?? null;
+// }
 
 /**
  * ハッシュパスワード取得
  */
-export async function getHashPassword(userId: string): Promise<string | null> {
-  const database = await db();
+// export async function getHashPassword(userId: string): Promise<string | null> {
+//   const database = await db();
 
-  const result = await database
-    .select({ passwordHash: users.passwordHash })
-    .from(users)
-    .where(dz.eq(users.id, userId))
-    .limit(1);
+//   const result = await database
+//     .select({ passwordHash: users.passwordHash })
+//     .from(users)
+//     .where(dz.eq(users.id, userId))
+//     .limit(1);
 
-  return result[0]?.passwordHash ?? null;
-}
+//   return result[0]?.passwordHash ?? null;
+// }
 
 /**
  * アカウント取得(auth.session)
  * getUserWithAccount で代用できる？
  */
-// export async function getAccount(userId: string) {
-//   const database = await db();
+export async function getAccount(userId: string) {
+  const database = await db();
 
-//   const result = await database
-//     .select()
-//     .from(account)
-//     .where(dz.eq(account.userId, userId))
-//     .limit(1);
+  const result = await database
+    .select()
+    .from(account)
+    .where(dz.eq(account.userId, userId))
+    .limit(1);
 
-//   return result[0] ?? null;
-// }
+  return result[0] ?? null;
+}
 
 /**
  * アバター取得
