@@ -426,14 +426,14 @@ export async function saveLoginHistory(
 /**
  * セッション情報取得
  */
-export async function getSession(refreshToken: string) {
-  //
-  const database = await db();
+// export async function getSession(refreshToken: string) {
+//   //
+//   const database = await db();
 
-  const [result] = await database
-    .select()
-    .from(sessions)
-    .where(dz.eq(sessions.refreshToken, refreshToken))
-    .limit(1);
-  return result;
-}
+//   const [result] = await database
+//     .select()
+//     .from(sessions)
+//     .where(dz.eq(sessions.refreshToken, refreshToken))
+//     .limit(1);
+//   return result;
+// }
