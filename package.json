@@ -3,12 +3,13 @@
 	"version": "0.0.0",
 	"private": true,
 	"scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+		"dev": "next dev",
+		"build": "next build",
+		"start": "next start"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.12.4",
+		"@types/react": "^19.2.14",
 		"typescript": "^5.5.2",
 		"vitest": "~3.2.0",
 		"wrangler": "^4.82.2"
