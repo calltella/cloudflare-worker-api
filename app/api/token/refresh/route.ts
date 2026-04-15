@@ -17,10 +17,10 @@ export async function POST(req: Request) {
   }
 
   // KVに保存してあるrefreshTokenはハッシュ化済
-  const hashedToken = await bcrypt.hash(refreshToken, 10);
+  //const hashedToken = await bcrypt.hash(refreshToken, 10);
 
   // KVに書き換えてcompair
-  const session = await getSessionToken(hashedToken)
+  const session = await getSessionToken(refreshToken)
 
   // セッションが見つからない
   if (!session) {
