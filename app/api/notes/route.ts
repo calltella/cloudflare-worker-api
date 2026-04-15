@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     return new Response("Invalid token", { status: 401 })
   }
   const db = await getDatabase();
-  const res = db.select().from(notes).orderBy(dz.desc(notes.id));
+  const res = await db.select().from(notes).orderBy(dz.desc(notes.id));
 
 
   return Response.json(res)
