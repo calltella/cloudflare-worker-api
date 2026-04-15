@@ -12,6 +12,8 @@ export async function getSessionToken(hashedToken: string): Promise<SessionSetti
   const kv = await getKV();
   const sessionKey = `session:${hashedToken}`;
 
+  console.log(`getSessionToken sessionKey: ${sessionKey}`)
+
   try {
     const value = await kv.get(sessionKey);
     if (!value) {
@@ -35,6 +37,8 @@ export async function putSessionToken(settings: SessionSettings): Promise<boolea
   const sessionKey = `session:${settings.hashedToken}`;
   console.log('expiration:', Math.floor(settings.expiresAt.getTime() / 1000));
   console.log('now:', Math.floor(Date.now() / 1000));
+  console.log('putSessionToken - sessionKey:', sessionKey);
+
   try {
     await kv.put(sessionKey, JSON.stringify(settings),
       {
