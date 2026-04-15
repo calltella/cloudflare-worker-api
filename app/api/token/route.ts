@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
   // ✅ Refresh Token
   const refreshToken = await signRefreshToken()
-  const refreshExpires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)
+  const refreshExpires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7) // 有効期限７日
 
   // トークンはハッシュ化して保存（セキュリティ対策）
   const hashedToken = await bcrypt.hash(refreshToken, 10);
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     });
 
   return Response.json({
-    accessToken,
-    refreshToken,
+    accessToken, // 有効期限15分
+    refreshToken, // 有効期限7日
   })
 }

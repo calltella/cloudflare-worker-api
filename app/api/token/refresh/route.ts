@@ -21,14 +21,14 @@ export async function POST(req: Request) {
 
   // セッションが見つからない
   if (!session) {
-    return new Response("Unauthorized", { status: 401 })
+    return new Response("Unauthorized No session", { status: 401 })
   }
 
   const isValid = await bcrypt.compare(refreshToken, session.hashedToken);
 
   // セッションが不正
   if (!isValid) {
-    return new Response("Unauthorized", { status: 401 })
+    return new Response("Unauthorized isValid", { status: 401 })
   }
 
   const now = new Date()
