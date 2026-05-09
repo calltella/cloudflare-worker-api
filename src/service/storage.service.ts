@@ -44,3 +44,39 @@ export async function deleteAvatarToR2(
     return false;
   }
 }
+
+// R2からのダウンロードURL取得
+export async function getDownloadUrlFromR2(filePath: string, fileName: string): Promise<string> {
+  // const command = new GetObjectCommand({
+  //   Bucket: process.env.R2_BUCKET!,
+  //   Key: filePath,
+  //   ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`
+  // });
+
+  try {
+    // const url = await getSignedUrl(r2ClientPrivate, command, { expiresIn: 3600 });
+    // console.log("signed url:", url);
+    return null as unknown as string; // URLを返す（実装は省略）
+  } catch (err) {
+    console.error("Error generating signed URL:", err);
+    throw new Error("Could not generate download URL");
+  }
+}
+
+// Worker環境からR2のダウンロードURLを取得
+export async function getDownloadUrlFromWorkerR2(filePath: string, fileName: string): Promise<Response> {
+  const r2 = await getR2("private");
+
+  const object = await r2.get(filePath);
+
+  if (!object || !object.body) {
+    throw new Error("File not found in R2");
+  }
+
+  return new Response(object.body as unknown as BodyInit, {
+    headers: {
+      "Content-Type": object.httpMetadata?.contentType ?? "application/octet-stream",
+      "Content-Disposition": `attachment; filename="${fileName}"`,
+    },
+  });
+}

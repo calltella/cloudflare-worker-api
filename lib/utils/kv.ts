@@ -65,18 +65,14 @@ function getKVProxy(): KVNamespace {
 }
 
 export async function getKV(): Promise<KVNamespace> {
-  // 本番環境（Cloudflare Workers上）の場合
-  if (process.env.CLOUDFLARE_ENV) {
-    const context = await getCloudflareContext({ async: true });
-    const env = context.env as unknown as CloudflareBindings;
+  // 本番環境のみ
+  const context = await getCloudflareContext({ async: true });
+  const env = context.env as unknown as CloudflareBindings;
 
-    if (!env.VERCEL_KV) {
-      throw new Error("VERCEL_KV binding not found");
-    }
-
-    return env.VERCEL_KV;
+  if (!env.VERCEL_KV) {
+    throw new Error("VERCEL_KV binding not found");
   }
 
-  // 開発環境の場合
-  return getKVProxy();
+  return env.VERCEL_KV;
 }
+

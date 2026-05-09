@@ -12,6 +12,7 @@ export async function requireAuth(req: Request): Promise<AuthResult> {
   const authHeader = req.headers.get("authorization");
 
   if (!authHeader?.startsWith("Bearer ")) {
+    console.log(`authHeader`)
     return {
       ok: false,
       response: new Response("Unauthorized", { status: 401 }),
@@ -19,9 +20,11 @@ export async function requireAuth(req: Request): Promise<AuthResult> {
   }
 
   const token = authHeader.split(" ")[1];
+  console.log(`token: ${token}`)
   const payload = await verifyAccessToken(token);
 
   if (!payload) {
+    console.log(`payload`)
     return {
       ok: false,
       response: new Response("Invalid token", { status: 401 }),

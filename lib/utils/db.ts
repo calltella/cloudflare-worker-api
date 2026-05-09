@@ -74,10 +74,3 @@ export async function getDB() {
 
   return drizzleD1(bindings.DB, { schema });
 }
-
-export async function getDatabase() {
-  if (process.env.CLOUDFLARE_ENV) {
-    return await getDB() // 本番
-  }
-  return await getDrizzleProxy() // 開発
-}

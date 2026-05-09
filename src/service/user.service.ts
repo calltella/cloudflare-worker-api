@@ -51,18 +51,18 @@ export async function findUserByEmail(email: string) {
 /**
  * 自分以外のUser取得を取得
  */
-// export async function getOtherUsers() {
-//   const session = await auth();
-//   const database = await db();
-//   if (!session) {
-//     throw new Error("Unauthorized");
-//   }
+export async function getOtherUsers() {
+  const session = await auth();
+  const database = await db();
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
 
-//   return await database
-//     .select({ id: users.id })
-//     .from(users)
-//     .where(dz.and(dz.ne(users.id, session.user.id), dz.eq(users.isActive, true)));
-// }
+  return await database
+    .select({ id: users.id })
+    .from(users)
+    .where(dz.and(dz.ne(users.id, session.user.id), dz.eq(users.isActive, true)));
+}
 
 /**
  * User,Account取得

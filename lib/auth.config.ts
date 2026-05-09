@@ -1,4 +1,4 @@
-// auth.ts
+// lib/auth.config.ts
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
