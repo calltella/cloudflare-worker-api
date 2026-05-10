@@ -80,13 +80,8 @@ export async function getDraftAplineList() {
 }
 
 // お気に入り一覧の表示
-export async function getFavoriteAplineList() {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    throw new Error("Not authenticated");
-  }
-
+export async function getFavoriteAplineList(userId?: string) {
+  if (!userId) return [];
   const db = await getDB();
 
   const resultsRaw = await db
@@ -130,7 +125,7 @@ export async function getFavoriteAplineList() {
       aplineFavorites,
       and(
         eq(aplineFavorites.articleId, aplineBase.id),
-        eq(aplineFavorites.userId, session.user.id)
+        eq(aplineFavorites.userId, userId)
       )
     )
     .orderBy(desc(aplineBase.id));
