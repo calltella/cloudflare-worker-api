@@ -53,4 +53,4 @@ jobs:
           echo "${{ secrets.CLOUDFLARE_ENV }}" | npx wrangler secret put CLOUDFLARE_ENV
           echo "${{ secrets.JWT_SECRET }}" | npx wrangler secret put JWT_SECRET 
           echo "${{ secrets.KV_SIGNING_SECRET }}" | npx wrangler secret put KV_SIGNING_SECRET 
-          
+          echo "${{ secrets.NEXTAUTH_SECRET }}" | npx wrangler secret put NEXTAUTH_SECRET
