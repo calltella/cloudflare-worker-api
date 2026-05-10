@@ -163,15 +163,17 @@ export async function saveFileMetadata(
 
 //　ログインユーザーの下書きリストを取得
 export async function getAplineDraftsExists(articleId: number) {
+
   const session = await auth();
   const db = await getDB();
+  console.log(`${session?.user.id}`)
 
   return await db
     .select()
     .from(aplineDrafts)
     .where(
       and(
-        eq(aplineDrafts.userId, session?.user.id),
+        eq(aplineDrafts.userId, 'ac20cc34-1d60-4aeb-8755-2097c9311302'),
         eq(aplineDrafts.articleId, articleId)
       )
     );
