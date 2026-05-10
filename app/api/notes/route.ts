@@ -1,14 +1,33 @@
+// app/api/notes/route.ts
 
-import { getAllNotes, createNote, deleteNote } from "@/src/service/notes.service";
-import { requireAuth } from "@/lib/utils/auth";
+import { getAllNotes, createNote } from "@/src/service/notes.service";
 
-// 1件取得 GET    /notes/:id
-// 更新 PUT    /notes/:id
+// レート制限用のシンプルなストア
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+const LIMIT = 3;           // 最大リクエスト数
+const WINDOW_MS = 60_000;  // ウィンドウ幅（60秒）
+
+function checkRateLimit(ip: string): { ok: boolean; retryAfter: number } {
+  const now = Date.now();
+  const entry = rateLimitStore.get(ip);
+
+  if (!entry || now > entry.resetAt) {
+    // 初回 or ウィンドウ期限切れ → リセット
+    rateLimitStore.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    return { ok: true, retryAfter: 0 };
+  }
+
+  if (entry.count >= LIMIT) {
+    return { ok: false, retryAfter: Math.ceil((entry.resetAt - now) / 1000) };
+  }
+
+  entry.count++;
+  return { ok: true, retryAfter: 0 };
+}
 
 // 一覧取得 GET /notes
 export async function GET(req: Request) {
-  const auth = await requireAuth(req);
-  if (!auth.ok) return auth.response;
 
   // notes全件取得
   const res = await getAllNotes();
@@ -17,8 +36,17 @@ export async function GET(req: Request) {
 
 // 作成 POST   /notes
 export async function POST(req: Request) {
-  const auth = await requireAuth(req);
-  if (!auth.ok) return auth.response;
+
+  // Cloudflare は CF-Connecting-IP ヘッダーにクライアントIPが入る
+  const ip = req.headers.get("CF-Connecting-IP") ?? "unknown";
+
+  const { ok, retryAfter } = checkRateLimit(ip);
+  if (!ok) {
+    return new Response("Too Many Requests", {
+      status: 429,
+      headers: { "Retry-After": String(retryAfter) },
+    });
+  }
 
   const body = await req.json();
 
@@ -31,25 +59,4 @@ export async function POST(req: Request) {
   const result = await createNote({ title, content });
 
   return Response.json(result);
-}
-
-// 削除 DELETE /notes/:id
-export async function DELETE(req: Request) {
-  const auth = await requireAuth(req);
-  if (!auth.ok) return auth.response;
-
-  const body = await req.json();
-  const { id } = body;
-
-  if (!id) {
-    return new Response("ID is required", { status: 400 });
-  }
-
-  const result = await deleteNote(id);
-
-  if (!result) {
-    return new Response("Note not found", { status: 404 });
-  }
-
-  return Response.json({ success: true, deleted: result });
 }
