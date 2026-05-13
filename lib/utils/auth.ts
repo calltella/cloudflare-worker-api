@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { findUserByEmail, getAccount, saveLoginHistory } from "@/src/service/user.service"
 import type { User, NewLoginHistory } from "@/db/schema/users";
+import { NextRequest } from "next/server";
 
 import { verifyAccessToken } from "@/lib/jwt";
 
@@ -8,7 +9,7 @@ export type AuthResult =
   | { ok: true; user: any }
   | { ok: false; response: Response };
 
-export async function requireAuth(req: Request): Promise<AuthResult> {
+export async function requireAuth(req: NextRequest): Promise<AuthResult> {
   const authHeader = req.headers.get("authorization");
 
   if (!authHeader?.startsWith("Bearer ")) {

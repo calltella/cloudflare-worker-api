@@ -1,20 +1,25 @@
 // api/token/route.ts
+
 import bcrypt from "bcryptjs"
 import { signAccessToken, signRefreshToken } from "@/lib/jwt";
 import { findUserByEmail } from "@/src/service/user.service";
-import { putSessionToken, initializeUserSettings } from "@/src/service/settings.service";
+import { initializeUserSettings, putSessionToken, deleteUserSettings } from "@/src/service/settings.service";
+import { NextRequest, NextResponse } from "next/server";
+import { StoredTokens } from "@/types/user";
+import { requireAuth } from "@/lib/utils/auth";
 
 type LoginRequest = {
   email: string
   password: string
 }
 
-export async function POST(req: Request) {
-  const body = (await req.json()) as LoginRequest
+export async function POST(request: NextRequest) {
+  const body = (await request.json()) as LoginRequest
   const { email, password } = body
 
-  const dummyHash =
-    "$2a$10$CwTycUXWue0Thq9StjUM0uJ8eFQ6h0eK1TKoEt1T9Fp1hJpG6tK9G"
+  const now = Date.now();
+
+  const dummyHash = "$2a$10$CwTycUXWue0Thq9StjUM0uJ8eFQ6h0eK1TKoEt1T9Fp1hJpG6tK9G"
 
   const user = await findUserByEmail(email)
   const passwordHash = user?.passwordHash ?? dummyHash
@@ -22,7 +27,7 @@ export async function POST(req: Request) {
   const isValid = await bcrypt.compare(password, passwordHash)
 
   if (!isValid || !user) {
-    return new Response("Unauthorized", { status: 401 })
+    return new NextResponse("Unauthorized", { status: 401 })
   }
 
   // ✅ Access Token
@@ -33,38 +38,50 @@ export async function POST(req: Request) {
 
   // ✅ Refresh Token
   const refreshToken = await signRefreshToken()
-  const refreshExpires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7) // 有効期限７日
 
-  console.log('RawrefreshToken:', refreshToken);
+  console.log('AccessToken issue');
 
   // トークンはハッシュ化して保存（セキュリティ対策）
-  const hashedToken = await bcrypt.hash(refreshToken, 10);
+  const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
 
   // ✅ KV保存
-  await putSessionToken(
-    {
-      userId: user.id,
-      hashedToken: hashedToken,
-      expiresAt: refreshExpires
-    }, refreshToken);
-
-  // KVにユーザーデータがなければ作成
   const setting = await initializeUserSettings(user.id);
 
-  console.log(`refreshToken: ${JSON.stringify(refreshToken)}`);
+  const newStored: StoredTokens = {
+    accessToken: accessToken,
+    refreshToken: hashedRefreshToken,
+    accessTokenExpiry: now + 14 * 60 * 1000,
+    refreshTokenExpiry: now + 7 * 24 * 60 * 60 * 1000, // 使うたびに延長
+  };
 
-  return Response.json({
+  await putSessionToken(user.id, newStored)
+
+  console.log(`newStored: ${JSON.stringify(newStored)}`);
+
+  return NextResponse.json({
     user: {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
-      avatorURL: setting.avatarPath,
+      avatarURL: setting.avatarURL,
       themeMode: setting.themeMode,
       colorThemes: setting.colorThemes,
       defaultView: setting.defaultView,
     },
-    accessToken,
-    refreshToken,
+    tokens: {
+      ...newStored,
+      refreshToken: refreshToken,
+    }
   });
+}
+
+// KV保存セッション情報を削除
+export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (!auth.ok) return auth.response;
+  console.log(`deleteUserSettings: ${auth.user.sub}`)
+  await deleteUserSettings(auth.user.sub);
+
+  return NextResponse.json({ success: true });
 }

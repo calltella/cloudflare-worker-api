@@ -1,51 +1,42 @@
-// app/api/token/refresh/route.ts
-
 import bcrypt from "bcryptjs";
 import { signAccessToken } from "@/lib/jwt";
 import { getSessionToken } from "@/src/service/settings.service";
+import { NextRequest, NextResponse } from "next/server";
 
 type RefreshRequest = {
-  refreshToken: string
-}
+  userId: string;
+  refreshToken: string;
+};
 
-export async function POST(req: Request) {
-  const body = (await req.json()) as RefreshRequest
-  const { refreshToken } = body
+export async function POST(request: NextRequest) {
+  const body = (await request.json()) as RefreshRequest;
+  const { userId, refreshToken } = body;
 
-  if (!refreshToken) {
-    return new Response("Bad Request", { status: 400 })
+  if (!userId || !refreshToken) {
+    return new NextResponse("Bad Request", { status: 400 });
   }
 
-  // KVに保存してあるrefreshTokenはハッシュ化済
-  //const hashedToken = await bcrypt.hash(refreshToken, 10);
-
-  // KVに書き換えてcompair
-  const session = await getSessionToken(refreshToken)
-
-  // セッションが見つからない
+  // KVからセッション取得
+  const session = await getSessionToken(userId);
   if (!session) {
-    return new Response("Unauthorized No session", { status: 401 })
+    return new NextResponse("Unauthorized: No session", { status: 401 });
   }
 
-  const isValid = await bcrypt.compare(refreshToken, session.hashedToken);
+  // リフレッシュトークンの有効期限チェック（bcrypt前に確認）
+  if (session.refreshTokenExpiry <= Date.now()) {
+    return new NextResponse("Unauthorized: Token expired", { status: 401 });
+  }
 
-  // セッションが不正
+  // ✅ 平文とハッシュを比較
+  const isValid = await bcrypt.compare(refreshToken, session.refreshToken);
   if (!isValid) {
-    return new Response("Unauthorized isValid", { status: 401 })
+    return new NextResponse("Unauthorized: Invalid token", { status: 401 });
   }
 
-  const now = new Date()
-
-  // ✅ 更新期限チェック
-  if (now > session.expiresAt) {
-    return new Response("Expired", { status: 401 })
-  }
-
-  const newAccessToken = await signAccessToken({
-    sub: session.userId,
-  })
-
-  return Response.json({
+  // ✅ スコープを外に出す
+  const newAccessToken = await signAccessToken({ sub: userId });
+  console.log(`RefreshToken issue`);
+  return NextResponse.json({
     accessToken: newAccessToken,
-  })
+  });
 }

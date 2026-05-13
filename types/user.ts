@@ -1,35 +1,30 @@
 // /types/user.ts
 
-import type { ColorThemeKey } from "@/types/colorTheme";
+import type { ColorThemeKey } from "@/app/theme/colorTheme";
 
 export type UserRole = "admin" | "user";
 export type ThemeMode = "light" | "dark" | "system";
 
-// KV形式で保存するための型
-export interface UserSettings {
+// ユーザー設定の共通型（KV保存・LoginResponse共通で使用）
+export type UserSettings = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatarURL: string;
   themeMode: ThemeMode;
   colorThemes: ColorThemeKey;
-  avatarPath: string;
-  notifications: boolean;
   defaultView: string;
-  createdAt: string;
-}
+};
 
-// KV形式(session)
-export interface SessionSettings {
-  userId: string;
-  hashedToken: string;
-  expiresAt: Date;
-}
+export type StoredTokens = {
+  accessToken: string;
+  refreshToken: string;
+  accessTokenExpiry: number;
+  refreshTokenExpiry: number;
+};
 
-/**
- * KV用 ユーザー設定
-*/
-export const DEFAULT_SETTINGS: UserSettings = {
-  themeMode: 'light',
-  colorThemes: 'default',
-  avatarPath: 'default.png',
-  notifications: true,
-  defaultView: 'dashboard',
-  createdAt: new Date().toISOString(),
+export type LoginResponse = {
+  user: UserSettings;
+  tokens: StoredTokens;
 };

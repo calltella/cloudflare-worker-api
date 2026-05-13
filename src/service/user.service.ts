@@ -35,6 +35,8 @@ export async function requireAdmin() {
 }
 /**
  * User取得( メールアドレスからユーザーを取得 )
+ * 認証なしで通過する
+ * email から ユーザーIDを取得
  */
 export async function findUserByEmail(email: string) {
   const database = await db();
@@ -51,17 +53,17 @@ export async function findUserByEmail(email: string) {
 /**
  * 自分以外のUser取得を取得
  */
-export async function getOtherUsers() {
-  const session = await auth();
+export async function getOtherUsers(userId: string) {
+  //const session = await auth();
   const database = await db();
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
+  // if (!session) {
+  //   throw new Error("Unauthorized");
+  // }
 
   return await database
     .select({ id: users.id })
     .from(users)
-    .where(dz.and(dz.ne(users.id, session.user.id), dz.eq(users.isActive, true)));
+    .where(dz.and(dz.ne(users.id, userId), dz.eq(users.isActive, true)));
 }
 
 /**
@@ -195,7 +197,7 @@ export async function getAccount(userId: string) {
  */
 export async function updateUserAvatar(
   userId: string,
-  avatarPath: string
+  avatarURL: string
 ) {
   const kv = await getUserSettings(userId);
 
@@ -203,11 +205,10 @@ export async function updateUserAvatar(
 
   const settings: UserSettings = {
     ...kv,
-    avatarPath: avatarPath,
-    createdAt: getJstDateTimeString(),
+    avatarURL: avatarURL,
   };
 
-  await putUserSettings(userId, settings);
+  await putUserSettings(settings);
 
   return settings;
 }

@@ -2,15 +2,15 @@
 
 import { headers } from "next/headers";
 import { getKV } from "@/lib/utils/kv";
-import { DEFAULT_SETTINGS } from "@/types/user";
-import { UserSettings, SessionSettings } from "@/types/user";
+import { USER_DEFAULT_SETTINGS } from "@/src/constants/settings";
+import { UserSettings, StoredTokens } from "@/types/user";
 import { getJstDateTimeString } from "@/lib/utils/date";
 import bcrypt from "bcryptjs";
 
 // セッションを取得
-export async function getSessionToken(refreshToken: string): Promise<SessionSettings | null> {
+export async function getSessionToken(userId: string): Promise<StoredTokens | null> {
   const kv = await getKV();
-  const sessionKey = `session:${refreshToken}`;
+  const sessionKey = `session:${userId}`;
 
   console.log(`getSessionToken sessionKey: ${sessionKey}`)
 
@@ -20,7 +20,7 @@ export async function getSessionToken(refreshToken: string): Promise<SessionSett
       console.log(`getSessionToken: key not found: ${sessionKey}`);
       return null;
     }
-    return JSON.parse(value) as SessionSettings;
+    return JSON.parse(value) as StoredTokens;
   } catch (err) {
     if (err instanceof Error) {
       console.log(`getSessionTokenError: ${err.message} / ${err.stack}`);
@@ -32,19 +32,14 @@ export async function getSessionToken(refreshToken: string): Promise<SessionSett
 }
 
 // セッションを保存
-export async function putSessionToken(settings: SessionSettings, refreshToken: string): Promise<boolean> {
+export async function putSessionToken(userId: string, settings: StoredTokens): Promise<boolean> {
   const kv = await getKV();
-  const sessionKey = `session:${refreshToken}`;
-
-  console.log('expiration:', Math.floor(settings.expiresAt.getTime() / 1000));
-  console.log('now:', Math.floor(Date.now() / 1000));
-  console.log('putSessionToken - sessionKey:', sessionKey);
+  const sessionKey = `session:${userId}`;
 
   try {
-    await kv.put(sessionKey, JSON.stringify(settings),
-      {
-        expiration: Math.floor(settings.expiresAt.getTime() / 1000),
-      });
+    await kv.put(sessionKey, JSON.stringify(settings), {
+      expirationTtl: 7 * 24 * 60 * 60, // KV自体の有効期限も7日
+    });
     return true;
   } catch (err) {
     if (err instanceof Error) {
@@ -74,12 +69,11 @@ export async function getUserSettings(userId: string): Promise<UserSettings | nu
 }
 
 export async function putUserSettings(
-  userId: string,
   settings: UserSettings
 ): Promise<boolean> {
   const kv = await getKV();
-  const key = `user:${userId}:settings`;
-  console.log(`putUserSettings called with userId: ${userId}, settings: ${JSON.stringify(settings)}`);
+  const key = `user:${settings.id}:settings`;
+  console.log(`putUserSettings called with userId: ${settings.id}, settings: ${JSON.stringify(settings)}`);
 
   try {
     await kv.put(key, JSON.stringify(settings));
@@ -107,11 +101,11 @@ export async function initializeUserSettings(userId: string): Promise<UserSettin
   if (existing) return existing;
 
   const settings: UserSettings = {
-    ...DEFAULT_SETTINGS,
-    createdAt: getJstDateTimeString(),
+    ...USER_DEFAULT_SETTINGS,
+    id: userId,
   };
 
-  await putUserSettings(userId, settings);
+  await putUserSettings(settings);
 
   return settings;
 }
