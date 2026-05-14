@@ -1,6 +1,7 @@
 // app/api/notes/route.ts
 
 import { getAllNotes, createNote } from "@/src/service/notes.service";
+import { NextRequest, NextResponse } from "next/server";
 
 // レート制限用のシンプルなストア
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
@@ -27,36 +28,36 @@ function checkRateLimit(ip: string): { ok: boolean; retryAfter: number } {
 }
 
 // 一覧取得 GET /notes
-export async function GET(req: Request) {
+export async function GET(request: NextRequest) {
 
   // notes全件取得
-  const res = await getAllNotes();
-  return Response.json(res)
+  const result = await getAllNotes();
+  return NextResponse.json(result)
 }
 
 // 作成 POST   /notes
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
 
   // Cloudflare は CF-Connecting-IP ヘッダーにクライアントIPが入る
-  const ip = req.headers.get("CF-Connecting-IP") ?? "unknown";
+  const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
 
   const { ok, retryAfter } = checkRateLimit(ip);
   if (!ok) {
-    return new Response("Too Many Requests", {
+    return new NextResponse("Too Many Requests", {
       status: 429,
       headers: { "Retry-After": String(retryAfter) },
     });
   }
 
-  const body = await req.json();
+  const body = await request.json();
 
   const { title, content } = body;
 
   if (!title) {
-    return new Response("Title is required", { status: 400 });
+    return new NextResponse("Title is required", { status: 400 });
   }
 
   const result = await createNote({ title, content });
 
-  return Response.json(result);
+  return NextResponse.json(result);
 }

@@ -51,6 +51,18 @@ export async function putSessionToken(userId: string, settings: StoredTokens): P
   }
 }
 
+export async function deleteSessionToken(userId: string): Promise<boolean> {
+  const kv = await getKV();
+  const sessionKey = `session:${userId}`;
+
+  try {
+    await kv.delete(sessionKey);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
 
 export async function getUserSettings(userId: string): Promise<UserSettings | null> {
   const kv = await getKV();

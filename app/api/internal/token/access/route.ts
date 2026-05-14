@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs"
 import { signAccessToken, signRefreshToken } from "@/lib/jwt";
 import { findUserByEmail } from "@/src/service/user.service";
-import { initializeUserSettings, putSessionToken, deleteUserSettings } from "@/src/service/settings.service";
+import { initializeUserSettings, putSessionToken, deleteSessionToken } from "@/src/service/settings.service";
 import { NextRequest, NextResponse } from "next/server";
 import { StoredTokens } from "@/types/user";
 import { requireAuth } from "@/lib/utils/auth";
@@ -81,7 +81,7 @@ export async function DELETE(request: NextRequest) {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
   console.log(`deleteUserSettings: ${auth.user.sub}`)
-  await deleteUserSettings(auth.user.sub);
+  await deleteSessionToken(auth.user.sub);
 
   return NextResponse.json({ success: true });
 }

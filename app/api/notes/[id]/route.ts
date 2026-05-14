@@ -1,9 +1,10 @@
 
 // app/api/notes/[id]/route.ts
 import { deleteNote } from "@/src/service/notes.service";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -13,8 +14,8 @@ export async function DELETE(
   const result = await deleteNote(Number(id));
 
   if (!result) {
-    return new Response("Note not found", { status: 404 });
+    return new NextResponse("Note not found", { status: 404 });
   }
 
-  return Response.json({ success: true, deleted: result });
+  return NextResponse.json({ success: true, deleted: result });
 }

@@ -2,8 +2,9 @@
 
 import { toggleAplineFavorite } from "@/src/service/apline.service";
 import { requireAuth } from "@/lib/utils/auth";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: Request,
+export async function GET(request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -13,5 +14,5 @@ export async function GET(request: Request,
 
   // 
   const res = await toggleAplineFavorite(auth.user.sub, Number(id));
-  return Response.json(res)
+  return NextResponse.json(res)
 }

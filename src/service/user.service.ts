@@ -3,12 +3,13 @@
 // src/service/notes.service.ts
 import * as dz from "drizzle-orm";
 import { getDB } from "@/lib/utils/db";
-import { users, account, loginHistories, sessions } from "@/db/schema/users";
+import { users, account, loginHistories, sessions, aplineUsers } from "@/db/schema/users";
 import { type NewLoginHistory } from "@/db/schema/users";
 import { auth } from "@/lib/auth.config";
 import { getUserSettings, putUserSettings } from "@/src/service/settings.service";
 import { getJstDateTimeString } from "@/lib/utils/date";
 import { UserSettings } from "@/types/user";
+import type { UserRole } from "@/types/user";
 
 /**
  * 共通DB取得
@@ -54,11 +55,7 @@ export async function findUserByEmail(email: string) {
  * 自分以外のUser取得を取得
  */
 export async function getOtherUsers(userId: string) {
-  //const session = await auth();
   const database = await db();
-  // if (!session) {
-  //   throw new Error("Unauthorized");
-  // }
 
   return await database
     .select({ id: users.id })
@@ -67,32 +64,32 @@ export async function getOtherUsers(userId: string) {
 }
 
 /**
- * User,Account取得
+ * 管理者用ユーザーリスト取得
  */
-// export async function getUserWithAccount(userId: string) {
-//   const db = await getDB();
+export async function getUserWithAccount() {
+  const db = await getDB();
 
-//   const results = await db
-//     .select({
-//       id: users.id,
-//       email: users.email,
-//       name: users.name,
-//       role: users.role,
-//       isActive: users.isActive,
-//       avatarUrl: users.avatarUrl,
-//       createdAt: users.createdAt,
-//       updatedAt: users.updatedAt,
+  const results = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      role: users.role,
+      isActive: users.isActive,
+      avatarUrl: users.avatarUrl,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      deletedAt: users.deletedAt,
 
-//       aplineUserId: aplineUsers.id,
-//       aplineUserName: aplineUsers.displayName,
-//     })
-//     .from(users)
-//     .where(dz.eq(users.id, userId))
-//     .leftJoin(account, dz.eq(users.id, account.userId))
-//     .leftJoin(aplineUsers, dz.eq(account.aplineUserId, aplineUsers.id))
+      aplineUserId: aplineUsers.id,
+      aplineUserName: aplineUsers.displayName,
+    })
+    .from(users)
+    .leftJoin(account, dz.eq(users.id, account.userId))
+    .leftJoin(aplineUsers, dz.eq(account.aplineUserId, aplineUsers.id))
 
-//   return results[0] ?? null;
-// }
+  return results;
+}
 
 /**
  * User一覧取得
@@ -166,16 +163,16 @@ export async function getAccount(userId: string) {
 /**
  * aplineユーザー一覧取得
  */
-// export async function getAplineUser() {
-//   const database = await db();
+export async function getAplineUser() {
+  const database = await db();
 
-//   const results = await database
-//     .select()
-//     .from(aplineUsers)
-//     .orderBy(aplineUsers.id);
+  const results = await database
+    .select()
+    .from(aplineUsers)
+    .orderBy(aplineUsers.id);
 
-//   return results;
-// }
+  return results;
+}
 
 /**
  * aplineユーザー個別取得
@@ -234,78 +231,95 @@ export async function updateUserAvatar(
 //   return settings;
 // }
 
+export type updateUserHashPassword = {
+  id: string;
+  hashPassword: string;
+}
+
 /**
  * パスワード更新
  */
-// export async function updateUserPassword(
-//   userId: string,
-//   password: string
-// ) {
-//   const hashed = await bcrypt.hash(password, 10);
-//   const database = await db();
+export async function updateUserPassword(
+  user: updateUserHashPassword
+) {
 
-//   return await database
-//     .update(users)
-//     .set({ passwordHash: hashed })
-//     .where(dz.eq(users.id, userId))
-//     .returning();
-// }
+  const database = await db();
+
+  const result = await database
+    .update(users)
+    .set({ passwordHash: user.hashPassword })
+    .where(dz.eq(users.id, user.id))
+    .returning();
+  if (result.length === 0) {
+    throw new Error("削除対象が見つかりません");
+  }
+  return result;
+}
 
 /**
  * プロフィール更新
  */
-// export async function updateUserProfile(
-//   userId: string,
-//   name: string,
-//   email: string
-// ) {
-//   const database = await db();
+export async function updateUserProfile(
+  userId: string,
+  name: string
+) {
+  const database = await db();
 
-//   return await database
-//     .update(users)
-//     .set({ name, email })
-//     .where(dz.eq(users.id, userId))
-//     .returning();
-// }
+  return await database
+    .update(users)
+    .set({ name })
+    .where(dz.eq(users.id, userId))
+    .returning();
+}
 
-/**
- * 権限関係更新
- */
-// export async function updateUserAuth(
-//   userId: string,
-//   role: "user" | "admin",
-//   isActive: boolean
-// ) {
-//   const database = await db();
-
-//   return await database
-//     .update(users)
-//     .set({
-//       role,
-//       isActive,
-//       updatedAt: new Date().toISOString(),
-//     })
-//     .where(dz.eq(users.id, userId))
-//     .returning();
-// }
+export type updateUserAuthority = {
+  id: string,
+  name: string;
+  role: UserRole,
+  isActive: boolean,
+}
 
 /**
  * 権限関係更新
  */
-// export async function updateAplineUser(
-//   userId: string,
-//   aplineUserId: number,
-// ) {
-//   const database = await db();
+export async function updateUserAuth(
+  userAuth: updateUserAuthority
+) {
+  const database = await db();
 
-//   return await database
-//     .update(account)
-//     .set({
-//       aplineUserId: aplineUserId
-//     })
-//     .where(dz.eq(account.userId, userId))
-//     .returning();
-// }
+  return await database
+    .update(users)
+    .set({
+      name: userAuth.name,
+      role: userAuth.role,
+      isActive: userAuth.isActive,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(dz.eq(users.id, userAuth.id))
+    .returning();
+}
+
+export type updateUserAplineConn = {
+  id: string;
+  aplineUserId: number;
+}
+
+/**
+ * 権限関係更新
+ */
+export async function updateAplineUser(
+  userConn: updateUserAplineConn
+) {
+  const database = await db();
+
+  return await database
+    .update(account)
+    .set({
+      aplineUserId: userConn.aplineUserId
+    })
+    .where(dz.eq(account.userId, userConn.id))
+    .returning();
+}
 
 /**
  * テーマモード更新
@@ -359,29 +373,33 @@ export async function updateUserAvatar(
 
 //   return created;
 // }
-
+export type deleteUserAuthority = {
+  id: string;
+}
 /**
  * ユーザー削除
  */
-// export async function deleteUser(
-//   userId: string
-// ) {
-//   const currentUser = await requireAdmin();
-//   if (currentUser.user.id === userId) {
-//     throw new Error("自分自身は削除できません");
-//   }
-//   const database = await db();
-//   const result = await database
-//     .update(users)
-//     .set({
-//       deletedAt: new Date().toISOString(),
-//       isActive: false,
-//     })
-//     .where(dz.eq(users.id, userId))
-//     .returning();
-
-//   return result;
-// }
+export async function deleteUser(
+  user: deleteUserAuthority
+) {
+  const currentUser = await requireAdmin();
+  if (currentUser.user.id === user.id) {
+    throw new Error("自分自身は削除できません");
+  }
+  const database = await db();
+  const result = await database
+    .update(users)
+    .set({
+      deletedAt: new Date().toISOString(),
+      isActive: false,
+    })
+    .where(dz.eq(users.id, user.id))
+    .returning();
+  if (result.length === 0) {
+    throw new Error("削除対象が見つかりません");
+  }
+  return result;
+}
 
 
 

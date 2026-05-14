@@ -29,7 +29,7 @@ export async function getAplineTenpoLists() {
 }
 
 // 下書き一覧の表示
-export async function getDraftAplineList() {
+export async function getDraftAplineList(userId: string) {
 
   const db = await getDB();
 
@@ -74,7 +74,7 @@ export async function getDraftAplineList() {
       aplineDrafts,
       eq(aplineDrafts.articleId, aplineBase.id)
     )
-    .where(isNotNull(aplineDrafts.id))
+    .where(and(isNotNull(aplineDrafts.id), eq(users.id, userId)))
     .orderBy(desc(aplineBase.id));
   return resultsRaw
 }
