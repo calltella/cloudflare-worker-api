@@ -7,6 +7,13 @@ import { UserSettings, StoredTokens } from "@/types/user";
 import { getJstDateTimeString } from "@/lib/utils/date";
 import bcrypt from "bcryptjs";
 
+/**
+ * apiサーバ側でKVを使用する項目
+ * 
+ * @param userId 
+ * @returns 
+ */
+
 // セッションを取得
 export async function getSessionToken(userId: string): Promise<StoredTokens | null> {
   const kv = await getKV();

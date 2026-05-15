@@ -7,7 +7,7 @@ export async function DELETE(
 ) {
   const { id } = await params;
 
-  console.log(`draft delete id: ${id}`);
+  //console.log(`draft delete id: ${id}`);
 
   return NextResponse.json({
     success: true,
@@ -21,7 +21,7 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  console.log(`draft get id: ${id}`);
+  //console.log(`draft get id: ${id}`);
 
   const res = await getAplineDraftsExists(Number(id))
 

@@ -1,34 +1,34 @@
 import bcrypt from "bcryptjs";
 import { findUserByEmail, getAccount, saveLoginHistory } from "@/src/service/user.service"
 import type { User, NewLoginHistory } from "@/db/schema/users";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { verifyAccessToken } from "@/lib/jwt";
 
 export type AuthResult =
   | { ok: true; user: any }
-  | { ok: false; response: Response };
+  | { ok: false; response: NextResponse };
 
 export async function requireAuth(req: NextRequest): Promise<AuthResult> {
   const authHeader = req.headers.get("authorization");
 
   if (!authHeader?.startsWith("Bearer ")) {
-    console.log(`authHeader`)
+    //console.log(`authHeader`)
     return {
       ok: false,
-      response: new Response("Unauthorized", { status: 401 }),
+      response: new NextResponse("Unauthorized", { status: 401 }),
     };
   }
 
   const token = authHeader.split(" ")[1];
-  console.log(`token: ${token}`)
+  //console.log(`token: ${token}`)
   const payload = await verifyAccessToken(token);
 
   if (!payload) {
-    console.log(`payload`)
+    //console.log(`payload`)
     return {
       ok: false,
-      response: new Response("Invalid token", { status: 401 }),
+      response: new NextResponse("Invalid token", { status: 401 }),
     };
   }
 

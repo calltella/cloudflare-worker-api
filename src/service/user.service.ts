@@ -21,18 +21,16 @@ async function db() {
 /**
  * セッションから管理者ＩＤの確認
  */
-export async function requireAdmin() {
-  const session = await auth();
+export async function requireAdmin(userId: string) {
+  const database = await db();
 
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
+  const result = await database
+    .select({ id: users.id, role: users.role })
+    .from(users)
+    .where(dz.eq(users.id, userId))
+    .limit(1);
 
-  if (session.user.role !== "admin") {
-    throw new Error("Forbidden");
-  }
-
-  return session;
+  return result[0] ?? null;
 }
 /**
  * User取得( メールアドレスからユーザーを取得 )
@@ -85,6 +83,7 @@ export async function getUserWithAccount() {
       aplineUserName: aplineUsers.displayName,
     })
     .from(users)
+    .where(dz.isNull(users.deletedAt))
     .leftJoin(account, dz.eq(users.id, account.userId))
     .leftJoin(aplineUsers, dz.eq(account.aplineUserId, aplineUsers.id))
 
@@ -342,37 +341,66 @@ export async function updateAplineUser(
 //   return settings;
 // }
 
+
+export type NewUserCreateRequest = {
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
 /**
  * 新規ユーザー作成
+ * @param user 
+ * @returns 
  */
-// export async function createUser(
-//   name: string,
-//   email: string,
-//   role: "user" | "admin",
-// ) {
-//   await requireAdmin();
+export async function createUser(
+  user: NewUserCreateRequest,
+): Promise<string> { // ✅ null を返さず throw する
+  const database = await db();
 
-//   const database = await db();
-//   const newUser = await database
-//     .insert(users)
-//     .values({
-//       name: name,
-//       email: email,
-//       role: role,
-//       isActive: true,
-//       createdAt: new Date().toISOString(),
-//     })
-//     .returning();
+  // ✅ メールアドレス重複チェック
+  const existing = await database
+    .select({ id: users.id })
+    .from(users)
+    .where(dz.eq(users.email, user.email))
+    .limit(1);
 
-//   const created = newUser[0];
+  if (existing.length > 0) {
+    throw new Error("DUPLICATE_EMAIL");
+  }
 
-//   await database.insert(account).values({
-//     userId: created.id,
-//     type: "credentials",
-//   });
+  try {
+    const newUser = await database
+      .insert(users)
+      .values({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      })
+      .returning();
 
-//   return created;
-// }
+    const created = newUser[0];
+
+    await database.insert(account).values({
+      userId: created.id,
+      type: "credentials",
+    });
+
+    return created.id;
+
+  } catch (error) {
+    // D1のUNIQUE制約エラーもカバー
+    if (error instanceof Error && error.message.includes("UNIQUE")) {
+      throw new Error("DUPLICATE_EMAIL");
+    }
+    console.error("createUser failed", error);
+    throw new Error("ユーザー作成に失敗しました");
+  }
+}
+
+
 export type deleteUserAuthority = {
   id: string;
 }
@@ -380,10 +408,14 @@ export type deleteUserAuthority = {
  * ユーザー削除
  */
 export async function deleteUser(
-  user: deleteUserAuthority
+  deleteUserId: deleteUserAuthority,
+  adminUserId: string
 ) {
-  const currentUser = await requireAdmin();
-  if (currentUser.user.id === user.id) {
+  const currentUser = await requireAdmin(adminUserId);
+  if (currentUser.role !== "admin") {
+    throw new Error("削除権限がありません");
+  }
+  if (deleteUserId.id === adminUserId) {
     throw new Error("自分自身は削除できません");
   }
   const database = await db();
@@ -393,7 +425,7 @@ export async function deleteUser(
       deletedAt: new Date().toISOString(),
       isActive: false,
     })
-    .where(dz.eq(users.id, user.id))
+    .where(dz.eq(users.id, deleteUserId.id))
     .returning();
   if (result.length === 0) {
     throw new Error("削除対象が見つかりません");

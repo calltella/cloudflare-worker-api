@@ -13,6 +13,6 @@ export async function GET(request: NextRequest) {
   //console.log(`auth: ${JSON.stringify(auth)}`);
   // 
   const res = await getFavoriteAplineList(auth.user.sub);
-  console.log(`getFavoriteAplineList: ${JSON.stringify(res)}`);
+  //console.log(`getFavoriteAplineList: ${JSON.stringify(res)}`);
   return NextResponse.json(res)
 }
