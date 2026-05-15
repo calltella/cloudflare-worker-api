@@ -116,17 +116,17 @@ export async function getUserWithAccount() {
 /**
  * ハッシュパスワード取得
  */
-// export async function getHashPassword(userId: string): Promise<string | null> {
-//   const database = await db();
+export async function getHashPassword(userId: string): Promise<string | null> {
+  const database = await db();
 
-//   const result = await database
-//     .select({ passwordHash: users.passwordHash })
-//     .from(users)
-//     .where(dz.eq(users.id, userId))
-//     .limit(1);
+  const result = await database
+    .select({ passwordHash: users.passwordHash })
+    .from(users)
+    .where(dz.eq(users.id, userId))
+    .limit(1);
 
-//   return result[0]?.passwordHash ?? null;
-// }
+  return result[0]?.passwordHash ?? null;
+}
 
 /**
  * アカウント取得(auth.session)
