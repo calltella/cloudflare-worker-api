@@ -259,15 +259,14 @@ export async function updateUserPassword(
  * プロフィール更新
  */
 export async function updateUserProfile(
-  userId: string,
-  name: string
+  user: UserSettings
 ) {
   const database = await db();
 
   return await database
     .update(users)
-    .set({ name })
-    .where(dz.eq(users.id, userId))
+    .set({ name: user.name, role: user.role, avatarUrl: user.avatarURL })
+    .where(dz.eq(users.id, user.id))
     .returning();
 }
 

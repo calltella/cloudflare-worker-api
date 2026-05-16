@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
   await putSessionToken(user.id, newStored)
 
   console.log(`newStored: ${JSON.stringify(newStored)}`);
+  console.log(`setting: ${JSON.stringify(setting)}`);
 
   return NextResponse.json({
     user: {

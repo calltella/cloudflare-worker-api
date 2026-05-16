@@ -51,9 +51,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 
-export async function GET(
-  request: NextRequest
-) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
   console.log(`result: ${JSON.stringify(auth)}`);
   if (!auth.ok) return auth.response;
@@ -64,15 +62,13 @@ export async function GET(
 }
 
 // ユーザデータ更新
-export async function PATCH(
-  request: NextRequest
-) {
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
 
   const user = (await request.json()) as UserSettings;
 
-  //await putUserSettings(user)
-  await updateUserProfile(user.id, user.name);
+  await putUserSettings(user)
+  await updateUserProfile(user);
   return NextResponse.json({ success: true });
 }
