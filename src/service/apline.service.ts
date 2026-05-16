@@ -658,7 +658,7 @@ export async function insertUserUnreadArticles(
   const db = await getDB();
 
   // 自分以外の有効なユーザーを選択
-  const otherUsers = await getOtherUsers();
+  const otherUsers = await getOtherUsers(session.user.id);
   await db.insert(atbl.userUnreadArticles).values(
     otherUsers.map((u) => ({
       userId: u.id,
