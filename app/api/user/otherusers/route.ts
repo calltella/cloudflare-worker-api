@@ -10,14 +10,17 @@ export async function GET(
 ) {
   const auth = await requireAuth(request);
   console.log(`result: ${JSON.stringify(auth)}`);
-  if (!auth.ok) return auth.response;
+  if (!auth.ok) return NextResponse.json(
+    { success: false, message: auth.response },
+    { status: 404 }
+  );
 
   try {
     const res = await getOtherUsers(auth.user.sub);
     console.log(`result: ${JSON.stringify(res)}`);
     return NextResponse.json({
       success: true,
-      users: res
+      data: res
     });
   } catch (error) {
     return NextResponse.json(
