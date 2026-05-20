@@ -156,8 +156,8 @@ export async function saveFileMetadata(
   await db.insert(aplineFileStore).values(records);
 }
 
-//　ログインユーザーの下書きリストを取得
-export async function getAplineDraftsExists(articleId: number) {
+//　ログインユーザーの下書きリストを取得 20260520
+export async function getAplineDraftsExists(userId: string, articleId: number) {
 
   const session = await auth();
   const db = await getDB();
@@ -168,7 +168,7 @@ export async function getAplineDraftsExists(articleId: number) {
     .from(aplineDrafts)
     .where(
       and(
-        eq(aplineDrafts.userId, 'ac20cc34-1d60-4aeb-8755-2097c9311302'),
+        eq(aplineDrafts.userId, userId),
         eq(aplineDrafts.articleId, articleId)
       )
     );
@@ -194,13 +194,14 @@ export async function updateAplineDrafts(articleId: number) {
     );
 
 }
-export async function insertAplineDrafts(articleId: number) {
-  //
-  const session = await auth();
+
+// 下書きリスト追加
+export async function insertAplineDrafts(userId: string, articleId: number) {
+
   const db = await getDB();
 
   await db.insert(aplineDrafts).values({
-    userId: session?.user.id,
+    userId: userId,
     articleId,
     createdAt: getJstDateTimeString(),
     updatedAt: getJstDateTimeString(),

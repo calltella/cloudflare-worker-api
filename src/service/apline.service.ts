@@ -401,15 +401,13 @@ export async function fetchAplineDetailList(params: GetAplineListViewsParams) {
 //    ページネーション・count不要、idで1件だけ取得
 // =============================================================
 
-export async function fetchAplineSingle(id: number): Promise<AplineSingleDTO | null> {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+export async function fetchAplineSingle(userId: string, id: number): Promise<AplineSingleDTO> {
 
   const db = await getDB();
 
   const resultsRaw = await db
     .select({ // 詳細フィールド流用
-      ...singleSelectFields(session.user.id),
+      ...singleSelectFields(userId),
       // aliasが必要なテーブルは直接書く
       acceptanceUserName: acceptanceUser.displayName,
       updateUserName: updaterUser.displayName,
@@ -420,13 +418,13 @@ export async function fetchAplineSingle(id: number): Promise<AplineSingleDTO | n
     .leftJoin(users, dz.eq(users.id, account.userId))
     .leftJoin(acceptanceUser, dz.eq(acceptanceUser.id, aplineBase.acceptanceId))
     .leftJoin(updaterUser, dz.eq(updaterUser.id, aplineBase.itemUpdaterId))
-    .leftJoin(atbl.aplineFavorites, dz.and(dz.eq(atbl.aplineFavorites.articleId, aplineBase.id), dz.eq(atbl.aplineFavorites.userId, session.user.id)))
-    .leftJoin(atbl.userUnreadArticles, dz.and(dz.eq(atbl.userUnreadArticles.articleId, aplineBase.id), dz.eq(atbl.userUnreadArticles.userId, session.user.id)))
+    .leftJoin(atbl.aplineFavorites, dz.and(dz.eq(atbl.aplineFavorites.articleId, aplineBase.id), dz.eq(atbl.aplineFavorites.userId, userId)))
+    .leftJoin(atbl.userUnreadArticles, dz.and(dz.eq(atbl.userUnreadArticles.articleId, aplineBase.id), dz.eq(atbl.userUnreadArticles.userId, userId)))
     .where(dz.eq(aplineBase.id, id)) // ← idで1件に絞るだけ
     .limit(1);
 
   const raw = resultsRaw[0];
-  if (!raw) return null;
+  if (!raw) throw new Error(`apline record not found: id=${id}`);
 
   const fileMap = await fetchFileMap([raw.id]);
 
@@ -698,17 +696,28 @@ export async function getBadgeCounts(id: string) {
   };
 }
 
-// 記事編集ロック
-export async function getAplineArticleLock(articleId: number) {
-  //
+export type ArticleLockResponce = {
+  lock: {
+    id: number;
+    expiresAt: Date;
+    createdAt: string;
+    updatedAt: string;
+    articleId: number;
+    lockedBy: string;
+    lockedAt: Date;
+    releasedAt: Date | null;
+    lockToken: string | null;
+  };
+  acquired: boolean;
+};
+
+export async function getAplineArticleLock(
+  userId: string,
+  articleId: number
+): Promise<ArticleLockResponce> {
   const db = await getDB();
   const now = getNow();
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
 
-  // 現在のロック取得
   const existing = await db
     .select()
     .from(atbl.aplineArticleLocks)
@@ -723,7 +732,7 @@ export async function getAplineArticleLock(articleId: number) {
       .insert(atbl.aplineArticleLocks)
       .values({
         articleId,
-        lockedBy: session.user.id,
+        lockedBy: userId,
         lockedAt: new Date(),
         expiresAt: getExpiresAt(10),
       })
@@ -736,7 +745,7 @@ export async function getAplineArticleLock(articleId: number) {
   const isActive = !lock.releasedAt && new Date(lock.expiresAt) > now;
 
   // 他人がロック中 → 取得不可
-  if (isActive && lock.lockedBy !== session.user.id) {
+  if (isActive && lock.lockedBy !== userId) {
     return { lock, acquired: false };
   }
 
@@ -744,7 +753,7 @@ export async function getAplineArticleLock(articleId: number) {
   const updated = await db
     .update(atbl.aplineArticleLocks)
     .set({
-      lockedBy: session.user.id,
+      lockedBy: userId,
       lockedAt: new Date(),
       expiresAt: getExpiresAt(10),
       releasedAt: null,
@@ -753,7 +762,6 @@ export async function getAplineArticleLock(articleId: number) {
     .returning();
 
   return { lock: updated[0], acquired: true };
-
 }
 
 // 編集ロックを強制的に解除

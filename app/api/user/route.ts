@@ -32,9 +32,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   };
 
   try {
-    await createUser(newUser);
+    const userId = await createUser(newUser);
     return NextResponse.json(
-      { success: true, message: "ユーザー作成に成功しました。" }
+      { success: true, data: userId }
     );
   } catch (error: unknown) {
     if (error instanceof Error && error.message === "DUPLICATE_EMAIL") {

@@ -8,7 +8,7 @@ export async function GET(
 ) {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
-  console.log(`auth response: ${JSON.stringify(auth)}`);
+  //console.log(`auth response: ${JSON.stringify(auth)}`);
   // auth response: {"ok":true,
   // "user":{"sub":"326754cb","role":"admin","iat":1778286305,"exp":1778287205}}
 

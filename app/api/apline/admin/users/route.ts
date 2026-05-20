@@ -1,7 +1,7 @@
 // app/api/apline/admin/users/route.ts
 
 import { requireAuth } from "@/lib/utils/auth";
-import { getUserWithAccount, updateUserAuth, deleteUser } from "@/src/service/user.service";
+import { getUserListsWithAccount, updateUserAuth, deleteUser } from "@/src/service/user.service";
 import { NextRequest, NextResponse } from "next/server";
 import type { updateUserAuthority, deleteUserAuthority } from "@/src/service/user.service";
 
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!auth.ok) return auth.response;
   //console.log(`auth: ${JSON.stringify(auth)}`);
   // 
-  const res = await getUserWithAccount();
+  const res = await getUserListsWithAccount();
   //console.log(`res: ${JSON.stringify(res)}`);
   return NextResponse.json({ success: true, data: res });
 }

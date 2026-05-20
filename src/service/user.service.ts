@@ -64,7 +64,7 @@ export async function getOtherUsers(userId: string) {
 /**
  * 管理者用ユーザーリスト取得
  */
-export async function getUserWithAccount() {
+export async function getUserListsWithAccount() {
   const db = await getDB();
 
   const results = await db
@@ -88,6 +88,34 @@ export async function getUserWithAccount() {
     .leftJoin(aplineUsers, dz.eq(account.aplineUserId, aplineUsers.id))
 
   return results;
+}
+
+/**
+ * User,Account取得
+ */
+export async function getUserWithAccount(userId: string) {
+  const db = await getDB();
+
+  const results = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      role: users.role,
+      isActive: users.isActive,
+      avatarUrl: users.avatarUrl,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+
+      aplineUserId: aplineUsers.id,
+      aplineUserName: aplineUsers.displayName,
+    })
+    .from(users)
+    .where(dz.eq(users.id, userId))
+    .leftJoin(account, dz.eq(users.id, account.userId))
+    .leftJoin(aplineUsers, dz.eq(account.aplineUserId, aplineUsers.id))
+
+  return results[0] ?? null;
 }
 
 /**
