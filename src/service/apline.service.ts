@@ -625,7 +625,7 @@ export async function generateNewApid() {
 }
 
 // 下書き状態から本投稿 publishAplineBase 
-export async function updateDraftAplineBase(id: number) {
+export async function updateDraftAplineBase(userId: string, id: number) {
   //
   const db = await getDB();
   const apid = await generateNewApid();
@@ -641,22 +641,20 @@ export async function updateDraftAplineBase(id: number) {
     .delete(atbl.aplineDrafts)
     .where(dz.eq(atbl.aplineDrafts.articleId, id));
 
-  await insertUserUnreadArticles(id, 'created')
+  await insertUserUnreadArticles(userId, id, 'created')
 }
 
 // 未読レコードを追加
 export async function insertUserUnreadArticles(
+  userId: string,
   articleId: number,
   reason: 'created' | 'updated'
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Not authenticated");
-  }
+
   const db = await getDB();
 
   // 自分以外の有効なユーザーを選択
-  const otherUsers = await getOtherUsers(session.user.id);
+  const otherUsers = await getOtherUsers(userId);
   await db.insert(atbl.userUnreadArticles).values(
     otherUsers.map((u) => ({
       userId: u.id,

@@ -192,18 +192,14 @@ export async function createAplineBase(
 
 }
 
-export async function updateAplineBase(params: UpdateAplineInput): Promise<number>;
-export async function updateAplineBase(params: CreateAplineInput & { apid: string, tempKey: string }): Promise<number>;
-export async function updateAplineBase(
-  params: UpdateAplineInput | (CreateAplineInput & { apid: string; tempKey: string })
-): Promise<number> {
-  const db = await getDB();
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+// ── 共通フィールドの組み立て ──
+async function buildCommonFields(
+  params: UpdateAplineInput | (CreateAplineInput & { apid: string; tempKey: string }),
+  userId: string
+): Promise<CommonFields> {
+  const authUser = await getUserWithAccount(userId);
 
-  const authUser = await getUserWithAccount(session.user.id);
-
-  const commonFields: CommonFields = {
+  return {
     title: params.title ?? null,
     organization: params.organization ?? null,
     responsible: params.responsible ?? null,
@@ -230,50 +226,62 @@ export async function updateAplineBase(
     itemUpdaterId: authUser.aplineUserId,
     mailFlag: params.mailFlag ?? false,
   };
-
-  // 新規投稿判定
-  if ("id" in params) {
-    // 未読判定処理
-    const { shouldUpdate, flaggedFields } = await detectCommonFieldChanges(
-      params.id,
-      commonFields
-    );
-
-    if (!shouldUpdate) {
-      // 変化なし → DBアクセス不要
-      return params.id;
-    }
-
-    // 更新処理
-    await db
-      .update(aplineBase)
-      .set({ ...commonFields, updatedAt: getJstDateTimeString() })
-      .where(dz.eq(aplineBase.id, params.id));
-
-    // フラグが立っているフィールドがあれば未読フラグを立てる
-    if (flaggedFields.length > 0) {
-      await insertUserUnreadArticles(params.id, 'updated');
-    }
-
-    return params.id;
-  } else {
-    // ── INSERT（既存のまま） ──
-    const inserted = await db.insert(aplineBase).values({
-      ...commonFields,
-      apid: params.apid?.trim() ? params.apid : null,
-      acceptanceId: authUser.aplineUserId,
-      slipIssuanceId: authUser.aplineUserId,
-      createdAt: getJstDateTimeString(),
-      updatedAt: getJstDateTimeString(),
-    });
-    const newId = inserted.meta.last_row_id;
-
-    await db
-      .update(aplineFileStore)
-      .set({ joinId: newId, tempKey: null })
-      .where(dz.eq(aplineFileStore.tempKey, params.tempKey));
-
-    return newId;
-  }
 }
 
+// ── UPDATE ──
+export async function updateAplineArticle(
+  params: UpdateAplineInput,
+  userId: string
+): Promise<number> {
+  const db = await getDB();
+  const commonFields = await buildCommonFields(params, userId);
+
+  const { shouldUpdate, flaggedFields } = await detectCommonFieldChanges(
+    params.id,
+    commonFields
+  );
+
+  // 変化なし → DBアクセス不要
+  if (!shouldUpdate) {
+    return params.id;
+  }
+
+  await db
+    .update(aplineBase)
+    .set({ ...commonFields, updatedAt: getJstDateTimeString() })
+    .where(dz.eq(aplineBase.id, params.id));
+
+  if (flaggedFields.length > 0) {
+    await insertUserUnreadArticles(userId, params.id, "updated");
+  }
+
+  return params.id;
+}
+
+// ── INSERT ──
+export async function createAplineArticle(
+  params: CreateAplineInput & { apid: string; tempKey: string },
+  userId: string
+): Promise<number> {
+  const db = await getDB();
+  const commonFields = await buildCommonFields(params, userId);
+  const authUser = await getUserWithAccount(userId);
+
+  const inserted = await db.insert(aplineBase).values({
+    ...commonFields,
+    apid: params.apid?.trim() ? params.apid : null,
+    acceptanceId: authUser.aplineUserId,
+    slipIssuanceId: authUser.aplineUserId,
+    createdAt: getJstDateTimeString(),
+    updatedAt: getJstDateTimeString(),
+  });
+
+  const newId = inserted.meta.last_row_id;
+
+  await db
+    .update(aplineFileStore)
+    .set({ joinId: newId, tempKey: null })
+    .where(dz.eq(aplineFileStore.tempKey, params.tempKey));
+
+  return newId;
+}
