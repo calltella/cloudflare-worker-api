@@ -5,7 +5,7 @@ import { requireAuth } from "@/lib/utils/auth";
 import { NextRequest, NextResponse } from "next/server";
 import type { UserSettings, StoredTokens } from "@/types/user";
 import { updateUserProfile } from "@/src/service/user.service"
-import { createUser, requireAdmin } from "@/src/service/user.service";
+import { createUser, getUserFromUserId } from "@/src/service/user.service";
 import type { NewUserCreateRequest } from "@/src/service/user.service";
 import { USER_DEFAULT_SETTINGS } from "@/src/constants/settings";
 
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
 
-  const adminUser = await requireAdmin(auth.user.sub);
+  const adminUser = await getUserFromUserId(auth.user.sub);
   if (adminUser.role !== "admin") {
     return NextResponse.json(
       { success: false, message: "Forbidden" },

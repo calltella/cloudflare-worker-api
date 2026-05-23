@@ -21,7 +21,7 @@ async function db() {
 /**
  * セッションから管理者ＩＤの確認
  */
-export async function requireAdmin(userId: string) {
+export async function getUserFromUserId(userId: string) {
   const database = await db();
 
   const result = await database
@@ -438,7 +438,7 @@ export async function deleteUser(
   deleteUserId: deleteUserAuthority,
   adminUserId: string
 ) {
-  const currentUser = await requireAdmin(adminUserId);
+  const currentUser = await getUserFromUserId(adminUserId);
   if (currentUser.role !== "admin") {
     throw new Error("削除権限がありません");
   }
