@@ -26,6 +26,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   return NextResponse.json({ success: true, data: updateId });
 }
 
+// ドラフト記事一覧を返す
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
@@ -33,5 +34,8 @@ export async function GET(request: NextRequest) {
   // 
   const res = await getDraftAplineList(auth.user.sub);
   //console.log(`res: ${JSON.stringify(res)}`);
-  return NextResponse.json(res)
+  return NextResponse.json({ success: true, data: res });
 }
+
+//export async function DELETE();
+// apline/delete を使う

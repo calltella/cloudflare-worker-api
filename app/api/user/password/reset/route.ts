@@ -17,14 +17,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
 
-  const adminUser = await getUserFromUserId(auth.user.sub);
-  if (adminUser.role !== "admin") {
+  const currentUser = await getUserFromUserId(auth.user.sub);
+  const isAdmin = currentUser.role === "admin";
+  if (!isAdmin) {
     return NextResponse.json(
       { success: false, message: "Forbidden" },
       { status: 403 }
     );
   }
-  const body = (await request.json()) as ResetPasswordRequest;
+  const body: ResetPasswordRequest = await request.json();
 
   const user = await getUserFromUserId(body.userId);
 

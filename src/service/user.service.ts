@@ -25,7 +25,14 @@ export async function getUserFromUserId(userId: string) {
   const database = await db();
 
   const result = await database
-    .select({ id: users.id, role: users.role })
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      avatarURL: users.avatarUrl,
+      isActive: users.isActive
+    })
     .from(users)
     .where(dz.eq(users.id, userId))
     .limit(1);
@@ -439,7 +446,8 @@ export async function deleteUser(
   adminUserId: string
 ) {
   const currentUser = await getUserFromUserId(adminUserId);
-  if (currentUser.role !== "admin") {
+  const isAdmin = currentUser.role === "admin";
+  if (!isAdmin) {
     throw new Error("削除権限がありません");
   }
   if (deleteUserId.id === adminUserId) {

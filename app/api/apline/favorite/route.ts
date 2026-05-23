@@ -18,13 +18,13 @@ export async function GET(request: NextRequest) {
 
     const res = await getFavoriteAplineList(auth.user.sub);
     if (res.length === 0) {
-      return NextResponse.json({ success: true, data: { favlists: [] } })
+      return NextResponse.json({ success: true, data: [] })
     }
 
-    return NextResponse.json({ success: true, data: { favlists: res } })
+    return NextResponse.json({ success: true, data: res })
   }
   const res = await toggleAplineFavorite(auth.user.sub, Number(favoriteId));
 
-  return NextResponse.json({ success: true, data: { fav: res } })
+  return NextResponse.json({ success: true, data: res })
 
 }
