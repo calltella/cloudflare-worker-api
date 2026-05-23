@@ -1,18 +1,30 @@
 // app/api/apline/favorite/route.ts
 import { getFavoriteAplineList } from "@/src/service/aplineSub.service";
+import { toggleAplineFavorite } from "@/src/service/apline.service";
 import { requireAuth } from "@/lib/utils/auth";
 import { NextRequest, NextResponse } from "next/server";
 
-// 1件取得 GET    /notes/:id
-// 更新 PUT    /notes/:id
-
-// 一覧取得 GET /notes
+// idなし → 一覧
+// idあり → トグル
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
-  //console.log(`auth: ${JSON.stringify(auth)}`);
-  // 
-  const res = await getFavoriteAplineList(auth.user.sub);
-  //console.log(`getFavoriteAplineList: ${JSON.stringify(res)}`);
-  return NextResponse.json(res)
+
+  const { searchParams } = request.nextUrl;
+
+  const favoriteId = searchParams.get("id");
+
+  if (!favoriteId) {
+
+    const res = await getFavoriteAplineList(auth.user.sub);
+    if (res.length === 0) {
+      return NextResponse.json({ success: true, data: { favlists: [] } })
+    }
+
+    return NextResponse.json({ success: true, data: { favlists: res } })
+  }
+  const res = await toggleAplineFavorite(auth.user.sub, Number(favoriteId));
+
+  return NextResponse.json({ success: true, data: { fav: res } })
+
 }
