@@ -16,8 +16,9 @@ export async function POST(request: NextRequest) {
     return new NextResponse("Bad Request", { status: 400 });
   }
   const accessToken = authHeader.slice(7);
-  console.log(`古い accessToken : ${accessToken}`)
+  console.log(`古い accessToken : ${accessToken}`);
   const decoded = await decodeAccessTokenIgnoreExpiry(accessToken);
+  console.log(`decoded : ${JSON.stringify(decoded)}`);
   if (!decoded?.sub) {
     return new NextResponse("Unauthorized: Invalid token", { status: 401 });
   }
