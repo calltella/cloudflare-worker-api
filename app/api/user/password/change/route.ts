@@ -10,7 +10,8 @@ type ChangePasswordRequest = {
   newPassword: string;
 };
 
-// パスワード変更
+// パスワード変更(一般ユーザー用：旧パスワードから新パスワード)
+// 単純なリソース置き換えではなく、認証を伴う操作なのでPOSTが自然です。
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
