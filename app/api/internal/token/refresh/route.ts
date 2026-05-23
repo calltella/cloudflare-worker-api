@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { signAccessToken } from "@/lib/jwt";
+import { signAccessToken, decodeAccessTokenIgnoreExpiry } from "@/lib/jwt";
 import { getSessionToken } from "@/src/service/settings.service";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/utils/auth";
@@ -10,49 +10,49 @@ type RefreshRequest = {
 };
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (!auth.ok) return auth.response;
+  // ① Authorizationヘッダーからアクセストークンを取得（期限切れOK）
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new NextResponse("Bad Request", { status: 400 });
+  }
+  const accessToken = authHeader.slice(7);
+  console.log(`古い accessToken : ${accessToken}`)
+  const decoded = await decodeAccessTokenIgnoreExpiry(accessToken);
+  if (!decoded?.sub) {
+    return new NextResponse("Unauthorized: Invalid token", { status: 401 });
+  }
+  const userId = decoded.sub;
 
-  const body = (await request.json()) as RefreshRequest;
-  const { refreshToken } = body;
-
-  if (!auth.user.sub || !refreshToken) {
+  // ② リフレッシュトークンの検証
+  const { refreshToken } = (await request.json()) as RefreshRequest;
+  if (!refreshToken) {
     return new NextResponse("Bad Request", { status: 400 });
   }
 
-  console.log(`RefreshToken Get KV Session`);
-  // KVからセッション取得
-  const session = await getSessionToken(auth.user.sub);
+  const session = await getSessionToken(userId);
   if (!session) {
     return new NextResponse("Unauthorized: No session", { status: 401 });
   }
 
-  // リフレッシュトークンの有効期限チェック（bcrypt前に確認）
   if (session.refreshTokenExpiry <= Date.now()) {
     return new NextResponse("Unauthorized: Token expired", { status: 401 });
   }
 
-  // ✅ 平文とハッシュを比較
   const isValid = await bcrypt.compare(refreshToken, session.refreshToken);
   if (!isValid) {
     return new NextResponse("Unauthorized: Invalid token", { status: 401 });
   }
 
+  // ③ 新しいアクセストークン発行
   const now = Date.now();
+  const newAccessToken = await signAccessToken({ sub: userId });
 
-  // ✅ スコープを外に出す
-  const newAccessToken = await signAccessToken({ sub: auth.user.sub });
-
-  // ✅ KVのアクセストークンを更新
-  await putSessionToken(auth.user.sub, {
+  await putSessionToken(userId, {
     ...session,
     accessToken: newAccessToken,
     accessTokenExpiry: now + 14 * 60 * 1000,
     refreshTokenExpiry: now + 7 * 24 * 60 * 60 * 1000,
   });
 
-  console.log(`RefreshToken issue`);
-  return NextResponse.json({
-    accessToken: newAccessToken,
-  });
+  return NextResponse.json({ accessToken: newAccessToken });
 }

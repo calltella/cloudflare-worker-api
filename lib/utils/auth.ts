@@ -9,11 +9,11 @@ export type AuthResult =
   | { ok: true; user: any }
   | { ok: false; response: NextResponse };
 
+// アクセストークンの検証
 export async function requireAuth(req: NextRequest): Promise<AuthResult> {
   const authHeader = req.headers.get("authorization");
 
   if (!authHeader?.startsWith("Bearer ")) {
-    //console.log(`authHeader`)
     return {
       ok: false,
       response: new NextResponse("Unauthorized", { status: 401 }),
@@ -21,7 +21,7 @@ export async function requireAuth(req: NextRequest): Promise<AuthResult> {
   }
 
   const token = authHeader.split(" ")[1];
-  //console.log(`token: ${token}`)
+
   const payload = await verifyAccessToken(token);
 
   if (!payload) {

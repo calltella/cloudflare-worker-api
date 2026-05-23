@@ -14,8 +14,8 @@ import { getAplineTenpoLists } from "@/src/service/aplineSub.service";
 
 import { users, account, aplineUsers } from "@/db/schema";
 import { getNow, getExpiresAt } from "@/lib/utils/date";
-// import { getUserWithAccount, getOtherUsers } from "@/src/service/user.service";
-import { getOtherUsers } from "@/src/service/user.service";
+import { getUserWithAccount, getOtherUsers } from "@/src/service/user.service";
+
 
 import type { AplineListDTO, AplineDetailListDTO, AplineSingleDTO } from "@/src/features/apline/types/ui";
 import { redirect } from "next/navigation";
@@ -504,33 +504,29 @@ const exportSelectFields = (userId: string) => ({
 });
 
 
-// export async function deleteAplineById(articleId: number): Promise<boolean> {
-//   const session = await auth();
-//   if (!session?.user?.id) {
-//     throw new Error("Unauthorized");
-//   }
+export async function deleteAplineById(userId: string, articleId: number): Promise<boolean> {
 
-//   const authUser = await getUserWithAccount(session.user.id);
-//   if (!authUser.aplineUserId) {
-//     throw new Error("Invalid user");
-//   }
-//   const db = await getDB();
+  const authUser = await getUserWithAccount(userId);
+  if (!authUser.aplineUserId) {
+    throw new Error("Invalid user");
+  }
+  const db = await getDB();
+  // ロック中、他人の書いた記事は削除できない仕様
+  const deleted = await db
+    .delete(aplineBase)
+    .where(
+      dz.and(
+        dz.eq(aplineBase.id, articleId),
+        dz.eq(aplineBase.acceptanceId, authUser.aplineUserId)
+      )
+    )
+    .returning({ id: aplineBase.id });
 
-//   const deleted = await db
-//     .delete(aplineBase)
-//     .where(
-//       dz.and(
-//         dz.eq(aplineBase.id, articleId),
-//         dz.eq(aplineBase.acceptanceId, authUser.aplineUserId)
-//       )
-//     )
-//     .returning({ id: aplineBase.id });
+  // 未読レコードを削除
+  await db.delete(atbl.userUnreadArticles).where(dz.eq(atbl.userUnreadArticles.articleId, articleId));
 
-//   // 未読レコードを削除
-//   await db.delete(atbl.userUnreadArticles).where(dz.eq(atbl.userUnreadArticles.articleId, articleId));
-
-//   return deleted.length > 0;
-// }
+  return deleted.length > 0;
+}
 
 // 未読を既読にする処理
 export async function markArticleAsRead(articleId: number) {

@@ -1,10 +1,8 @@
+// app/api/apline/edit/route.ts
 
 import { getAplineArticleLock, fetchAplineSingle } from "@/src/service/apline.service";
 import { requireAuth } from "@/lib/utils/auth";
 import { NextRequest, NextResponse } from "next/server";
-import { AplineSelectItems } from "@/types/article";
-import type { CreateAplineInput } from "@/types/article";
-import { createAplineBase } from "@/src/service/aplineUpdate.service";
 import type { AplineSingleDTO } from "@/src/features/apline/types/ui";
 import { getJstDateTimeString } from "@/lib/utils/date";
 
@@ -43,7 +41,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (mode === "edit") {
     const lock = await getAplineArticleLock(auth.user.sub, articleId);
     if (!lock.acquired) {
-      return NextResponse.json({ success: false, reason: "locked", data: lock });
+      // ロック情報と記事情報を分けて返す
+      return NextResponse.json({
+        success: false,
+        reason: "locked",
+        data: {
+          lock: lock.lock,
+          article: res,
+        },
+      });
     }
     return NextResponse.json({ success: true, data: res });
   }
