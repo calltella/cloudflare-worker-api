@@ -24,10 +24,10 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
 
-  const deleteUserId = (await request.json()) as deleteUserAuthority;
+  const deleteAuth: deleteUserAuthority = await request.json();
 
   try {
-    await deleteUser(deleteUserId, auth.user.sub);
+    await deleteUser(deleteAuth, auth.user.sub);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(`deleteUser error: ${error}`);

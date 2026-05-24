@@ -435,36 +435,61 @@ export async function createUser(
 }
 
 
-export type deleteUserAuthority = {
-  id: string;
-}
 /**
  * ユーザー削除
  */
+type DeleteMode = "soft" | "hard";
+export type deleteUserAuthority = {
+  deleteUserId: string;
+  deleteMode: DeleteMode;
+}
+
 export async function deleteUser(
-  deleteUserId: deleteUserAuthority,
+  deleteAuth: deleteUserAuthority,
   adminUserId: string
 ) {
   const currentUser = await getUserFromUserId(adminUserId);
+
   const isAdmin = currentUser.role === "admin";
+
   if (!isAdmin) {
     throw new Error("削除権限がありません");
   }
-  if (deleteUserId.id === adminUserId) {
+
+  if (deleteAuth.deleteUserId === adminUserId) {
     throw new Error("自分自身は削除できません");
   }
+
   const database = await db();
+
+  // ハードデリート
+  if (deleteAuth.deleteMode === "hard") {
+    const result = await database
+      .delete(users)
+      .where(dz.eq(users.id, deleteAuth.deleteUserId))
+      .returning();
+
+    if (result.length === 0) {
+      throw new Error("削除対象が見つかりません");
+    }
+
+    return result;
+  }
+
+  // ソフトデリート
   const result = await database
     .update(users)
     .set({
       deletedAt: new Date().toISOString(),
       isActive: false,
     })
-    .where(dz.eq(users.id, deleteUserId.id))
+    .where(dz.eq(users.id, deleteAuth.deleteUserId))
     .returning();
+
   if (result.length === 0) {
     throw new Error("削除対象が見つかりません");
   }
+
   return result;
 }
 
