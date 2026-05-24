@@ -589,26 +589,14 @@ export async function deleteAplineById(userId: string, articleId: number): Promi
 }
 
 // 未読を既読にする処理
-export async function markArticleAsRead(articleId: number) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
+export async function markArticleAsRead(userId: string, articleId: number) {
   const db = await getDB();
 
-  const [accountRow] = await db
-    .select({ aplineUserId: account.aplineUserId })
-    .from(account)
-    .where(dz.eq(account.userId, session?.user.id));
-
-  if (!accountRow) {
-    throw new Error("Apline user not found");
-  }
   const result = await db
     .delete(atbl.userUnreadArticles)
     .where(
       dz.and(
-        dz.eq(atbl.userUnreadArticles.userId, session.user.id),
+        dz.eq(atbl.userUnreadArticles.userId, userId),
         dz.eq(atbl.userUnreadArticles.articleId, articleId)
       )
     ).returning();

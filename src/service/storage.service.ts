@@ -70,13 +70,16 @@ export async function getDownloadUrlFromWorkerR2(filePath: string, fileName: str
   const object = await r2.get(filePath);
 
   if (!object || !object.body) {
-    throw new Error("File not found in R2");
+    return new Response(JSON.stringify({ success: false, message: "File not found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   return new Response(object.body as unknown as BodyInit, {
     headers: {
       "Content-Type": object.httpMetadata?.contentType ?? "application/octet-stream",
-      "Content-Disposition": `attachment; filename="${fileName}"`,
+      "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`
     },
   });
 }
