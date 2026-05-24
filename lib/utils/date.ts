@@ -18,7 +18,7 @@ export function getExpiresAt(minutes = 10) {
 
 // 20260524 → 2026-05-24に変換
 export function toDateString(v: string): boolean | string {
-  if (isValidYYYYMMDD(v)) {
+  if (!isValidYYYYMMDD(v)) {
     return false;
   }
   return `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}`;

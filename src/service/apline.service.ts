@@ -753,18 +753,17 @@ export async function getBadgeCounts(id: string) {
 export type ArticleLockResponce = {
   lock: {
     id: number;
-    expiresAt: Date;
-    createdAt: string;
-    updatedAt: string;
-    articleId: number;
-    lockedBy: string;
-    lockedAt: Date;
-    releasedAt: Date | null;
-    lockToken: string | null;
+    expiresAt: Date; // 解除予定時間
+    articleId: number; // 記事番号
+    lockedBy: string; // ロックしているaplineユーザー名を取得（必ず自分以外）
+    lockedAt: Date; // ロックした時間
   };
   acquired: boolean;
 };
 
+// 基本は記事がロック状態かどうかロック可能なら自分がロックする
+// lockedBy は生のuserIdなので外部に出さない様に
+// ロックが競合した場合のユーザー情報を最低限出す
 export async function getAplineArticleLock(
   userId: string,
   articleId: number
@@ -787,12 +786,21 @@ export async function getAplineArticleLock(
       .values({
         articleId,
         lockedBy: userId,
-        lockedAt: new Date(),
-        expiresAt: getExpiresAt(10),
+        lockedAt: now,
+        expiresAt: getExpiresAt(10), // 10分間ロック
       })
       .returning();
 
-    return { lock: inserted[0], acquired: true };
+    return {
+      lock: {
+        id: inserted[0].id,
+        expiresAt: inserted[0].expiresAt,
+        articleId: articleId,
+        lockedBy: "自分",
+        lockedAt: inserted[0].lockedAt
+      },
+      acquired: true
+    };
   }
 
   // ロック有効かチェック
@@ -800,22 +808,47 @@ export async function getAplineArticleLock(
 
   // 他人がロック中 → 取得不可
   if (isActive && lock.lockedBy !== userId) {
-    return { lock, acquired: false };
+    const aplineUserData = await getUserWithAccount(lock.lockedBy);
+    return {
+      lock: {
+        id: lock.id,
+        expiresAt: lock.expiresAt,
+        articleId: articleId,
+        lockedBy: aplineUserData.aplineUserName ? aplineUserData.aplineUserName : "",
+        lockedAt: lock.lockedAt
+      },
+      acquired: false
+    };
   }
 
   // 自分 or 期限切れ → UPDATEで取り直し
-  const updated = await db
+  // updateだと returning が効かないのでSelectで再取得
+  await db
     .update(atbl.aplineArticleLocks)
     .set({
       lockedBy: userId,
-      lockedAt: new Date(),
+      lockedAt: now,
       expiresAt: getExpiresAt(10),
       releasedAt: null,
     })
-    .where(dz.eq(atbl.aplineArticleLocks.articleId, articleId))
-    .returning();
+    .where(dz.eq(atbl.aplineArticleLocks.articleId, articleId));
 
-  return { lock: updated[0], acquired: true };
+  const updated = await db
+    .select()
+    .from(atbl.aplineArticleLocks)
+    .where(dz.eq(atbl.aplineArticleLocks.articleId, articleId))
+    .limit(1);
+
+  return {
+    lock: {
+      id: updated[0].id,
+      expiresAt: updated[0].expiresAt,
+      articleId: articleId,
+      lockedBy: "自分",
+      lockedAt: updated[0].lockedAt
+    },
+    acquired: true
+  };
 }
 
 // 編集ロックを強制的に解除
