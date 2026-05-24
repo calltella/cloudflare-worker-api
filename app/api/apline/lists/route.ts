@@ -12,16 +12,16 @@ export type fetchAplineListResponce = {
 }
 
 type GetAplineListQuery = {
-  currentPage: string;
-  pageSize: string;
-  shopId?: string;
+  userId: string;
+  currentPage: number;
+  pageSize: number;
+  shopId?: number;
   keyword?: string;
-  unread?: string;
-  incomplete?: string;
+  unread?: boolean;
+  incomplete?: boolean;
 };
 
-export async function GET(request: NextRequest
-) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   // token取得ユーザーと認証ユーザーは異なる
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest
   const unread = unreadRaw !== null ? unreadRaw === "true" : undefined;
   const incomplete = incompleteRaw !== null ? incompleteRaw === "true" : undefined;
 
-  const params = {
+  const params: GetAplineListQuery = {
     userId,
     currentPage,
     pageSize,
@@ -80,20 +80,8 @@ export async function GET(request: NextRequest
     incomplete,
   };
 
-  //console.log(`lists params: ${JSON.stringify(params)}`);
-
-
   const res: fetchAplineListResponce = await fetchAplineList(params);
 
-  //   return {
-  //   currentPage,
-  //   aplineDatas: results,
-  //   totalPages: Math.ceil((totalCountResult[0]?.count ?? 0) / pageSize),
-  // };
-
-  //console.log(`lists response: ${JSON.stringify(res)}`);
-
-  //console.log(`lists count: ${res.aplineDatas.length}`); // 配列の場合
   return NextResponse.json({ success: true, data: res });
 
 }

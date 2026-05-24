@@ -16,6 +16,34 @@ export function getExpiresAt(minutes = 10) {
   return d;
 }
 
+// 20260524 → 2026-05-24に変換
+export function toDateString(v: string): boolean | string {
+  if (isValidYYYYMMDD(v)) {
+    return false;
+  }
+  return `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}`;
+}
+
+function isValidYYYYMMDD(value: string | null): boolean {
+  if (!value) return false;
+
+  if (!/^\d{8}$/.test(value)) {
+    return false;
+  }
+
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(4, 6));
+  const day = Number(value.slice(6, 8));
+
+  const date = new Date(year, month - 1, day);
+
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  );
+};
+
 /**
  * 
  * @param date 

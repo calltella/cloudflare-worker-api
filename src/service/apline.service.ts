@@ -437,39 +437,99 @@ export async function fetchAplineSingle(userId: string, id: number): Promise<Apl
 // =============================================================
 // 4. エクスポート用全件取得（新規）By jules
 // =============================================================
+export type GetAplineExportDatasParams = {
+  userId: string;
+  currentPage: number;
+  shopId?: number;
+  keyword?: string;
+  pageSize: number;
+  unread?: boolean;
+  incomplete?: boolean;
+};
 
-export async function fetchAllAplineForExport(params: Omit<GetAplineListViewsParams, "currentPage" | "pageSize">) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
-
+export async function fetchAllAplineForExport(params: {
+  fromDate: string;
+  toDate: string;
+}) {
   const db = await getDB();
-  const conditions = await buildAplineConditions(params);
+
+  const from = `${params.fromDate.slice(0, 4)}-${params.fromDate.slice(4, 6)}-${params.fromDate.slice(6, 8)} 00:00:00`;
+
+  const to = `${params.toDate.slice(0, 4)}-${params.toDate.slice(4, 6)}-${params.toDate.slice(6, 8)} 23:59:59`;
 
   const results = await db
-    .select(exportSelectFields(session.user.id))
+    .select(exportSelectFields())
     .from(aplineBase)
-    .leftJoin(aplineSchema.aplineStatus, dz.eq(aplineBase.statusId, aplineSchema.aplineStatus.id))
-    .leftJoin(aplineSchema.aplineRequestCategory, dz.eq(aplineBase.requestCategoryId, aplineSchema.aplineRequestCategory.id))
-    .leftJoin(aplineSchema.aplineClassification, dz.eq(aplineBase.classificationId, aplineSchema.aplineClassification.id))
-    .leftJoin(aplineSchema.aplineSubsystem, dz.eq(aplineBase.subsystemId, aplineSchema.aplineSubsystem.id))
-    .leftJoin(aplineSchema.aplineBusinessLists, dz.eq(aplineBase.businessId, aplineSchema.aplineBusinessLists.id))
-    .leftJoin(aplineSchema.aplineSeverity, dz.eq(aplineBase.severityId, aplineSchema.aplineSeverity.id))
-    .leftJoin(aplineSchema.aplineEmergency, dz.eq(aplineBase.emergencyId, aplineSchema.aplineEmergency.id))
-    .leftJoin(aplineSchema.aplineImpact, dz.eq(aplineBase.impactId, aplineSchema.aplineImpact.id))
-    .leftJoin(aplineSchema.aplinePriority, dz.eq(aplineBase.priorityId, aplineSchema.aplinePriority.id))
-    .leftJoin(aplineSchema.aplineCause, dz.eq(aplineBase.causeId, aplineSchema.aplineCause.id))
-    .leftJoin(aplineSchema.aplineDeal, dz.eq(aplineBase.dealId, aplineSchema.aplineDeal.id))
+    .leftJoin(
+      aplineSchema.aplineStatus,
+      dz.eq(aplineBase.statusId, aplineSchema.aplineStatus.id)
+    )
+    .leftJoin(
+      aplineSchema.aplineRequestCategory,
+      dz.eq(
+        aplineBase.requestCategoryId,
+        aplineSchema.aplineRequestCategory.id
+      )
+    )
+    .leftJoin(
+      aplineSchema.aplineClassification,
+      dz.eq(
+        aplineBase.classificationId,
+        aplineSchema.aplineClassification.id
+      )
+    )
+    .leftJoin(
+      aplineSchema.aplineSubsystem,
+      dz.eq(aplineBase.subsystemId, aplineSchema.aplineSubsystem.id)
+    )
+    .leftJoin(
+      aplineSchema.aplineBusinessLists,
+      dz.eq(aplineBase.businessId, aplineSchema.aplineBusinessLists.id)
+    )
+    .leftJoin(
+      aplineSchema.aplineSeverity,
+      dz.eq(aplineBase.severityId, aplineSchema.aplineSeverity.id)
+    )
+    .leftJoin(
+      aplineSchema.aplineEmergency,
+      dz.eq(aplineBase.emergencyId, aplineSchema.aplineEmergency.id)
+    )
+    .leftJoin(
+      aplineSchema.aplineImpact,
+      dz.eq(aplineBase.impactId, aplineSchema.aplineImpact.id)
+    )
+    .leftJoin(
+      aplineSchema.aplinePriority,
+      dz.eq(aplineBase.priorityId, aplineSchema.aplinePriority.id)
+    )
+    .leftJoin(
+      aplineSchema.aplineCause,
+      dz.eq(aplineBase.causeId, aplineSchema.aplineCause.id)
+    )
+    .leftJoin(
+      aplineSchema.aplineDeal,
+      dz.eq(aplineBase.dealId, aplineSchema.aplineDeal.id)
+    )
     .leftJoin(account, dz.eq(account.aplineUserId, aplineBase.acceptanceId))
     .leftJoin(users, dz.eq(users.id, account.userId))
-    .leftJoin(aplineUsers, dz.eq(aplineUsers.id, aplineBase.slipIssuanceId))
-    .where(dz.and(...conditions)).limit(10) // 上限1万件まで（必要に応じて調整）
+    .leftJoin(
+      aplineUsers,
+      dz.eq(aplineUsers.id, aplineBase.slipIssuanceId)
+    )
+    .where(
+      dz.and(
+        dz.gte(aplineBase.workStartTime, from),
+        dz.lte(aplineBase.workStartTime, to)
+      )
+    )
+    .limit(10)
     .orderBy(dz.desc(aplineBase.id));
 
   return results;
 }
 
 /** エクスポート用フィールド（全項目 + マスター名）By jules */
-const exportSelectFields = (userId: string) => ({
+const exportSelectFields = () => ({
   id: aplineBase.id,
   apid: aplineBase.apid,
   title: aplineBase.title,
