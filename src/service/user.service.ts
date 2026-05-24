@@ -464,6 +464,11 @@ export async function deleteUser(
 
   // ハードデリート
   if (deleteAuth.deleteMode === "hard") {
+    // cascade しているので先に削除
+    await database
+      .delete(account)
+      .where(dz.eq(account.userId, deleteAuth.deleteUserId));
+
     const result = await database
       .delete(users)
       .where(dz.eq(users.id, deleteAuth.deleteUserId))

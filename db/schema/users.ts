@@ -48,23 +48,6 @@ export const account = sqliteTable("account", {
     .references(() => users.id),
   type: text("type").notNull(),
   aplineUserId: integer("apline_user_id"), // users -> account -> aplineUsers
-  // themeMode: text("theme_mode", {  // next-themesを使うので未使用（localstorageに保存するため）
-  //   enum: [
-  //     "default",
-  //     "light",
-  //     "dark",
-  //     "system"
-  //   ]
-  // }).default("default"),
-  // colorThemes: text("color_themes", {  // KVで保存するので未使用
-  //   enum: [
-  //     "default",
-  //     "blue",
-  //     "green",
-  //     "purple",
-  //     "orange"
-  //   ]
-  // }).default("default"),
 });
 
 export const aplineUsers = sqliteTable("apline_users", {

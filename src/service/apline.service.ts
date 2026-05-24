@@ -852,26 +852,36 @@ export async function getAplineArticleLock(
 }
 
 // 編集ロックを強制的に解除
-export async function forceUnlockAplineLockAction(articleId: number) {
-  //
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
+export async function forceUnlockAplineLockAction(userId: string, articleId: number) {
+  const now = getNow();
   const db = await getDB();
   await db
     .update(atbl.aplineArticleLocks)
     .set({
-      lockedBy: session.user.id,
-      lockedAt: new Date(),
+      lockedBy: userId,
+      lockedAt: now,
       expiresAt: getExpiresAt(10),
-      releasedAt: new Date(),
+      releasedAt: now,
       lockToken: 'force unlock'
     })
-    .where(dz.eq(atbl.aplineArticleLocks.articleId, articleId))
-    .returning();
+    .where(dz.eq(atbl.aplineArticleLocks.articleId, articleId));
 
-  redirect(`/apline/edit/${articleId}`);
+  const updated = await db
+    .select()
+    .from(atbl.aplineArticleLocks)
+    .where(dz.eq(atbl.aplineArticleLocks.articleId, articleId))
+    .limit(1);
+
+  return {
+    lock: {
+      id: updated[0].id,
+      expiresAt: updated[0].expiresAt,
+      articleId: articleId,
+      lockedBy: "自分",
+      lockedAt: updated[0].lockedAt
+    },
+    acquired: true
+  };
 }
 
 // お気に入り登録・解除
