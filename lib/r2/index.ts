@@ -89,8 +89,13 @@ export async function uploadFileToR2({
   folder,
 }: UploadFileParams): Promise<UploadFileResult> {
   const bucket = await getR2(bucketType);
+
   const extension = getExtension(file.name);
+  console.log(`file.name: ${file.name}`);
+  console.log(`extension: ${extension}`);
   const fileName = `${crypto.randomUUID()}${extension}`;
+  console.log(`fileName: ${fileName}`);
+
   const key = createR2Key({ fileName, folder });
   const arrayBuffer = await file.arrayBuffer();
   const options: R2PutOptions = {
