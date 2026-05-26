@@ -7,9 +7,9 @@ import { aplineBase } from "@/db/schema/aplineBase";
 import * as aplineSchema from "@/db/schema/aplineMasters";
 import { users, account } from "@/db/schema";
 import type { UploadFileMeta } from "@/src/features/apline/types/ui";
-import { aplinePulldownList, userUnreadArticles, aplineFileStore, aplineDrafts, aplineFavorites } from "@/db/schema/aplineSubTables";
-import { formatToDbDateTime, getJstDateTimeString } from "@/lib/utils/date";
-import { getDownloadUrlFromR2, getDownloadUrlFromWorkerR2 } from "@/src/service/storage.service";
+import { aplineFileStore, aplineDrafts, aplineFavorites } from "@/db/schema/aplineSubTables";
+import { getJstDateTimeString } from "@/lib/utils/date";
+import { getDownloadUrlFromWorkerR2 } from "@/src/service/storage.service";
 
 // 店舗一覧を取得
 export async function getAplineTenpoLists() {
@@ -275,29 +275,21 @@ export async function removeFavorites(articleIds: number[]) {
 export async function getAplineFileDownloadUrl(downloadKey: string) {
   const db = await getDB();
 
-  const fileRecord = await db
-    .select()
+  const result = await db
+    .select({
+      filePath: aplineFileStore.filePath,
+      fileName: aplineFileStore.fileName,
+    })
     .from(aplineFileStore)
-    .where(eq(aplineFileStore.downloadKey, downloadKey))
+    .where(
+      eq(aplineFileStore.downloadKey, downloadKey)
+    )
     .limit(1);
 
-  if (fileRecord.length === 0) {
-    throw new Error("File not found");
-  }
+  const file = result[0];
+  if (!file) { throw new Error("File not found"); }
 
-  const filePath = fileRecord[0].filePath;
-  const fileName = fileRecord[0].fileName || "download";
-
-  if (!filePath) {
-    throw new Error("File path not found");
-  }
-
-  console.log(`filePath: ${filePath}`)
-
-  const downloadUrl = process.env.CLOUDFLARE_ENV
-    ? await getDownloadUrlFromWorkerR2(filePath, fileName) // Workers環境なら直接URLを取得
-    : await getDownloadUrlFromR2(filePath, fileName); // ローカル環境でも同じ関数でURLを取得
-
-  return downloadUrl;
+  if (!file.filePath) { throw new Error("File path not found"); }
+  return getDownloadUrlFromWorkerR2(file.filePath, file.fileName ?? "download",);
 }
 
