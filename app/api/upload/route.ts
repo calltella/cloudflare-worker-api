@@ -1,11 +1,9 @@
 // app/api/upload/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-
 import { requireAuth } from "@/lib/utils/auth";
-
-import { uploadFileToR2, deleteR2Object, } from "@/lib/r2";
-
+import { uploadFileToR2, deleteR2Object } from "@/lib/r2";
+import { UPLOAD_FOLDERS, type UploadFolder } from "@/lib/r2/types";
 import { R2_BUCKET_TYPES, type BucketType, } from "@/lib/r2/constants";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -26,12 +24,8 @@ const PRIVATE_MIME_TYPES = [
 export async function POST(
   request: NextRequest
 ) {
-  // auth
   const auth = await requireAuth(request);
-
-  if (!auth.ok) {
-    return auth.response;
-  }
+  if (!auth.ok) return auth.response;
 
   try {
     const formData = await request.formData();
@@ -56,14 +50,27 @@ export async function POST(
     // bucket type
     const bucketTypeRaw = formData.get("bucketType");
 
-    if (
-      bucketTypeRaw !== R2_BUCKET_TYPES.PUBLIC && bucketTypeRaw !== R2_BUCKET_TYPES.PRIVATE) {
+    if (bucketTypeRaw !== R2_BUCKET_TYPES.PUBLIC && bucketTypeRaw !== R2_BUCKET_TYPES.PRIVATE) {
       return NextResponse.json(
         { message: "invalid bucket type", }, { status: 400, }
       );
     }
 
     const bucketType: BucketType = bucketTypeRaw;
+
+    function isUploadFolder(value: unknown): value is UploadFolder {
+      return UPLOAD_FOLDERS.includes(value as UploadFolder);
+    }
+
+    const folderRaw = formData.get("folder");
+
+    if (!isUploadFolder(folderRaw)) {
+      return NextResponse.json(
+        { message: "invalid folder type" },
+        { status: 400 }
+      );
+    }
+    const folder: UploadFolder = folderRaw;
 
     // size validation
     if (file.size > MAX_FILE_SIZE) {
@@ -84,8 +91,7 @@ export async function POST(
     }
 
     // upload
-    const result =
-      await uploadFileToR2({ file, bucketType, userId: auth.user.sub, });
+    const result = await uploadFileToR2({ file, bucketType, userId: auth.user.sub, folder: folder });
 
     return NextResponse.json({
       success: true,

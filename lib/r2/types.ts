@@ -11,7 +11,7 @@ export type UploadFileParams = {
   file: File;
   bucketType?: "public" | "private";
   userId: string;
-  folder?: string;
+  folder: UploadFolder;
 };
 
 export type UploadFileResult = {
@@ -19,3 +19,6 @@ export type UploadFileResult = {
   fileName: string;
   url: string | null;
 };
+
+export const UPLOAD_FOLDERS = ["avatar", "article", "report"] as const;
+export type UploadFolder = typeof UPLOAD_FOLDERS[number];

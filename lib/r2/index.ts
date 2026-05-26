@@ -2,22 +2,10 @@
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { CloudflareBindings } from "@/types/env";
+import type { R2Bucket, R2PutOptions, } from "@cloudflare/workers-types";
+import { R2_BUCKET_TYPES, type BucketType, } from "./constants";
 
-import type {
-  R2Bucket,
-  R2PutOptions,
-} from "@cloudflare/workers-types";
-
-import {
-  R2_BUCKET_TYPES,
-  R2_PREFIX,
-  type BucketType,
-} from "./constants";
-
-import type {
-  UploadFileParams,
-  UploadFileResult,
-} from "./types";
+import type { UploadFileParams, UploadFileResult, } from "./types";
 
 type R2Env = {
   PUBLIC_BUCKET: R2Bucket;
@@ -30,7 +18,6 @@ async function getEnv(): Promise<R2Env> {
   });
 
   const env = context.env as unknown as CloudflareBindings;
-
   if (!env.PUBLIC_BUCKET) {
     throw new Error("PUBLIC_BUCKET binding not found");
   }
@@ -69,22 +56,19 @@ export async function getR2(
  * key生成
  */
 export function createR2Key(params: {
-  bucketType: BucketType;
-  userId: string;
   fileName: string;
-  folder?: string;
+  folder: string;
 }) {
-  const { bucketType, userId, fileName, folder, } = params;
-
-  const parts = [R2_PREFIX[bucketType], userId,];
-
-  if (folder) { parts.push(folder); }
-
-  parts.push(fileName);
-
+  const { fileName, folder } = params;
+  const parts = [folder, fileName];
   return parts.join("/");
 }
 
+/**
+ * 拡張子を切り取り
+ * @param filename 
+ * @returns 
+ */
 function getExtension(filename: string) {
   const index = filename.lastIndexOf(".");
 
@@ -105,20 +89,10 @@ export async function uploadFileToR2({
   folder,
 }: UploadFileParams): Promise<UploadFileResult> {
   const bucket = await getR2(bucketType);
-
   const extension = getExtension(file.name);
-
   const fileName = `${crypto.randomUUID()}${extension}`;
-
-  const key = createR2Key({
-    bucketType,
-    userId,
-    fileName,
-    folder,
-  });
-
+  const key = createR2Key({ fileName, folder });
   const arrayBuffer = await file.arrayBuffer();
-
   const options: R2PutOptions = {
     httpMetadata: {
       contentType: file.type,
@@ -130,20 +104,12 @@ export async function uploadFileToR2({
     },
   };
 
-  await bucket.put(
-    key,
-    arrayBuffer,
-    options
-  );
+  await bucket.put(key, arrayBuffer, options);
 
   return {
-    key,
-    fileName,
-
+    key, fileName,
     url:
-      bucketType === R2_BUCKET_TYPES.PUBLIC
-        ? createPublicFileUrl(key)
-        : null,
+      bucketType === R2_BUCKET_TYPES.PUBLIC ? createPublicFileUrl(key) : null,
   };
 }
 
