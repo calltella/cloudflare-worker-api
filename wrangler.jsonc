@@ -24,11 +24,11 @@
   ],
   "r2_buckets": [
     {
-      "binding": "VERCEL_APLINE",
+      "binding": "PUBLIC_BUCKET",
       "bucket_name": "vercel-apline"
     },
     {
-      "binding": "PRIVATE_APLINE",
+      "binding": "PRIVATE_BUCKET",
       "bucket_name": "private"
     },
     {

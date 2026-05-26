@@ -4,7 +4,7 @@ import type { R2Bucket, D1Database, KVNamespace } from "@cloudflare/workers-type
 
 export type CloudflareBindings = {
   DB: D1Database;
-  VERCEL_APLINE: R2Bucket;
-  PRIVATE_APLINE: R2Bucket;
+  PUBLIC_BUCKET: R2Bucket;
+  PRIVATE_BUCKET: R2Bucket;
   VERCEL_KV: KVNamespace;
 };

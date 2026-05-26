@@ -1,66 +1,150 @@
+// app/api/upload/route.ts
 
-import { requireAuth } from "@/lib/utils/auth";
-import { uploadAvatarToR2, deleteAvatarToR2 } from "@/src/service/storage.service";
 import { NextRequest, NextResponse } from "next/server";
 
-/**
- * API機能
- * ファイルをアップロードする機能のみ
- * ファイルをアップロードする場所（Public or Private)
- * アップロードが成功したらファイルパスを払い出し
- * アップロードが失敗したらエラーを返す
- * 
- * 
- * 
- * @param req 
- * @returns 
- */
-export async function POST(request: NextRequest) {
+import { requireAuth } from "@/lib/utils/auth";
 
-  // Token認証
+import { uploadFileToR2, deleteR2Object, } from "@/lib/r2";
+
+import { R2_BUCKET_TYPES, type BucketType, } from "@/lib/r2/constants";
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+const PUBLIC_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+];
+
+const PRIVATE_MIME_TYPES = [
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+];
+
+export async function POST(
+  request: NextRequest
+) {
+  // auth
   const auth = await requireAuth(request);
-  if (!auth.ok) return auth.response;
+
+  if (!auth.ok) {
+    return auth.response;
+  }
 
   try {
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
+    const formData =
+      await request.formData();
 
-    const bucketType = formData.get("BucketType") as string | null;
+    // file
+    const fileRaw =
+      formData.get("file");
 
-    if (!file) {
-      return new Response("file is required", { status: 400 });
+    if (!(fileRaw instanceof File)) {
+      return NextResponse.json(
+        { message: "file is required", }, { status: 400, }
+      );
     }
 
-    const fileName = await uploadAvatarToR2(file)
+    const file = fileRaw;
+
+    // bucket type
+    const bucketTypeRaw =
+      formData.get("bucketType");
+
+    if (
+      bucketTypeRaw !== R2_BUCKET_TYPES.PUBLIC && bucketTypeRaw !== R2_BUCKET_TYPES.PRIVATE) {
+      return NextResponse.json(
+        { message: "invalid bucket type", }, { status: 400, }
+      );
+    }
+
+    const bucketType: BucketType = bucketTypeRaw;
+
+    // size validation
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { message: "file size too large", }, { status: 400, }
+      );
+    }
+
+    // mime validation
+    const allowedMimeTypes = bucketType === R2_BUCKET_TYPES.PUBLIC ? PUBLIC_MIME_TYPES : PRIVATE_MIME_TYPES;
+
+    if (!allowedMimeTypes.includes(file.type)
+    ) {
+      console.log(`upload file.type: ${JSON.stringify(file.type)}`)
+      return NextResponse.json(
+        { message: "invalid file type", }, { status: 400, }
+      );
+    }
+
+    // upload
+    const result =
+      await uploadFileToR2({ file, bucketType, userId: auth.user.sub, });
 
     return NextResponse.json({
       success: true,
-      fileName,
-      bucketType,
+      file: { key: result.key, fileName: result.fileName, url: result.url, },
     });
-  } catch (err) {
-    console.error(err);
-    return new NextResponse("Upload failed", { status: 500 });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      { message: "upload failed", }, { status: 500, }
+    );
   }
 }
 
-// 削除 DELETE /notes/:id
-export async function DELETE(request: NextRequest) {
+/**
+ * DELETE
+ */
+export async function DELETE(
+  request: NextRequest
+) {
   const auth = await requireAuth(request);
-  if (!auth.ok) return auth.response;
 
-  const body = await request.json();
-  const { fileName } = body;
+  if (!auth.ok) { return auth.response; }
 
-  if (!fileName) {
-    return new NextResponse("fileName is required", { status: 400 });
+  try {
+    const body =
+      await request.json();
+
+    const key = body.key;
+
+    const bucketType =
+      body.bucketType;
+
+    if (typeof key !== "string"
+    ) {
+      return NextResponse.json(
+        { message: "key is required", }, { status: 400, }
+      );
+    }
+
+    if (
+      bucketType !== R2_BUCKET_TYPES.PUBLIC && bucketType !== R2_BUCKET_TYPES.PRIVATE
+    ) {
+      return NextResponse.json(
+        { message: "invalid bucket type", }, { status: 400, }
+      );
+    }
+
+    await deleteR2Object(
+      key,
+      bucketType
+    );
+
+    return NextResponse.json({
+      success: true,
+      deleted: key,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      { message: "delete failed", }, { status: 500, }
+    );
   }
-  console.log(`deleteFile: ${JSON.stringify(fileName)}`);
-  const result = await deleteAvatarToR2(fileName);
-
-  if (!result) {
-    return new NextResponse("fileName not found", { status: 404 });
-  }
-
-  return NextResponse.json({ success: true, deleted: result });
 }

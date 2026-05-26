@@ -1,7 +1,7 @@
 // app/api/apline/download/route.ts
 import { requireAuth } from "@/lib/utils/auth";
 import { NextRequest, NextResponse } from "next/server";
-import { getR2 } from "@/lib/utils/r2";
+import { getR2 } from "@/lib/r2";
 
 export async function GET(request: NextRequest): Promise<NextResponse | Response> {
   const auth = await requireAuth(request);

@@ -1,5 +1,5 @@
 
-import { getR2 } from "@/lib/utils/r2";
+import { getR2 } from "@/lib/r2";
 import { randomUUID } from "crypto";
 
 export async function uploadAvatarToR2(
