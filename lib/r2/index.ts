@@ -3,9 +3,10 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { CloudflareBindings } from "@/types/env";
 import type { R2Bucket, R2PutOptions, } from "@cloudflare/workers-types";
-import { R2_BUCKET_TYPES, type BucketType, } from "./constants";
+import { R2_BUCKET_TYPES, type BucketType, } from "@/lib/r2/constants";
+import type { UploadFileParams, UploadFileResult } from "@/lib/r2/types";
+import { IMAGE_MIME_TYPE_TO_EXT, PRIVATE_MIME_TYPES } from "@/lib/r2/types";
 
-import type { UploadFileParams, UploadFileResult, } from "./types";
 
 type R2Env = {
   PUBLIC_BUCKET: R2Bucket;
@@ -78,6 +79,13 @@ function getExtension(filename: string) {
 
   return filename.slice(index);
 }
+function getExtensionFromFile(file: File): string {
+  const fromName = getExtension(file.name);
+  if (fromName) return fromName;
+
+  // ファイル名に拡張子がなければMIMEタイプから補完
+  return IMAGE_MIME_TYPE_TO_EXT[file.type] ?? "";
+}
 
 /**
  * upload
@@ -90,9 +98,7 @@ export async function uploadFileToR2({
 }: UploadFileParams): Promise<UploadFileResult> {
   const bucket = await getR2(bucketType);
 
-  const extension = getExtension(file.name);
-  console.log(`file.name: ${file.name}`);
-  console.log(`extension: ${extension}`);
+  const extension = getExtensionFromFile(file);
   const fileName = `${crypto.randomUUID()}${extension}`;
   console.log(`fileName: ${fileName}`);
 

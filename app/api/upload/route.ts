@@ -3,23 +3,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/utils/auth";
 import { uploadFileToR2, deleteR2Object } from "@/lib/r2";
-import { UPLOAD_FOLDERS, type UploadFolder } from "@/lib/r2/types";
+import { UPLOAD_FOLDERS, MAX_FILE_SIZE, PRIVATE_MIME_TYPES, PUBLIC_MIME_TYPES } from "@/lib/r2/types";
+import type { UploadFolder } from "@/lib/r2/types";
 import { R2_BUCKET_TYPES, type BucketType, } from "@/lib/r2/constants";
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
-
-const PUBLIC_MIME_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-];
-
-const PRIVATE_MIME_TYPES = [
-  "application/pdf",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.ms-excel",
-];
 
 export async function POST(
   request: NextRequest
