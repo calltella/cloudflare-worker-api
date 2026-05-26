@@ -34,12 +34,16 @@ export async function POST(
   }
 
   try {
-    const formData =
-      await request.formData();
+    const formData = await request.formData();
+    console.log(request.headers.get("content-type"));
+    for (const [key, value] of formData.entries()) {
+      console.log(key, value);
+    }
 
     // file
-    const fileRaw =
-      formData.get("file");
+    const fileRaw = formData.get("file");
+    console.log(fileRaw);
+    console.log(fileRaw instanceof File);
 
     if (!(fileRaw instanceof File)) {
       return NextResponse.json(
@@ -50,8 +54,7 @@ export async function POST(
     const file = fileRaw;
 
     // bucket type
-    const bucketTypeRaw =
-      formData.get("bucketType");
+    const bucketTypeRaw = formData.get("bucketType");
 
     if (
       bucketTypeRaw !== R2_BUCKET_TYPES.PUBLIC && bucketTypeRaw !== R2_BUCKET_TYPES.PRIVATE) {
