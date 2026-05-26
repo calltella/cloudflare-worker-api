@@ -29,15 +29,15 @@ export async function POST(
 
   try {
     const formData = await request.formData();
-    console.log(request.headers.get("content-type"));
+    // console.log(request.headers.get("content-type"));
     for (const [key, value] of formData.entries()) {
-      console.log(key, value);
+      console.log(`content-type : key:${key} value:${value}`);
     }
 
     // file
     const fileRaw = formData.get("file");
-    console.log(fileRaw);
-    console.log(fileRaw instanceof File);
+    console.log(`fileRaw : ${fileRaw} `);
+    console.log(`fileRaw instanceof File : ${fileRaw instanceof File} `);
 
     if (!(fileRaw instanceof File)) {
       return NextResponse.json(
