@@ -29,8 +29,7 @@ async function getEnv(): Promise<R2Env> {
     async: true,
   });
 
-  const env =
-    context.env as unknown as CloudflareBindings;
+  const env = context.env as unknown as CloudflareBindings;
 
   if (!env.PUBLIC_BUCKET) {
     throw new Error("PUBLIC_BUCKET binding not found");
@@ -75,21 +74,11 @@ export function createR2Key(params: {
   fileName: string;
   folder?: string;
 }) {
-  const {
-    bucketType,
-    userId,
-    fileName,
-    folder,
-  } = params;
+  const { bucketType, userId, fileName, folder, } = params;
 
-  const parts = [
-    R2_PREFIX[bucketType],
-    userId,
-  ];
+  const parts = [R2_PREFIX[bucketType], userId,];
 
-  if (folder) {
-    parts.push(folder);
-  }
+  if (folder) { parts.push(folder); }
 
   parts.push(fileName);
 
@@ -119,8 +108,7 @@ export async function uploadFileToR2({
 
   const extension = getExtension(file.name);
 
-  const fileName =
-    `${crypto.randomUUID()}${extension}`;
+  const fileName = `${crypto.randomUUID()}${extension}`;
 
   const key = createR2Key({
     bucketType,
@@ -189,8 +177,7 @@ export async function deleteR2Object(
 export function createPublicFileUrl(
   key: string
 ) {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_PUBLIC_BUCKET_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_IMAGE_BASE_URL;
 
   if (!baseUrl) {
     throw new Error(
