@@ -42,4 +42,8 @@ export const PRIVATE_MIME_TYPES = [
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.ms-excel",
+  "text/csv",
+  "application/zip",
+  "application/vnd.ms-excel.sheet.macroEnabled.12",
+  "application/octet-stream",
 ];

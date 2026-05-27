@@ -103,13 +103,11 @@ export async function DELETE(
   if (!auth.ok) { return auth.response; }
 
   try {
-    const body =
-      await request.json();
+    const body = await request.json();
 
     const key = body.key;
 
-    const bucketType =
-      body.bucketType;
+    const bucketType = body.bucketType;
 
     if (typeof key !== "string"
     ) {
@@ -118,9 +116,7 @@ export async function DELETE(
       );
     }
 
-    if (
-      bucketType !== R2_BUCKET_TYPES.PUBLIC && bucketType !== R2_BUCKET_TYPES.PRIVATE
-    ) {
+    if (bucketType !== R2_BUCKET_TYPES.PUBLIC && bucketType !== R2_BUCKET_TYPES.PRIVATE) {
       return NextResponse.json(
         { message: "invalid bucket type", }, { status: 400, }
       );
