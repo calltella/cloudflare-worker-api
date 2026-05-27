@@ -1,5 +1,13 @@
 // /app/src/service/aplineImportDatas.service.ts
 
+/**
+ * aplineからデータインポートするサービス群
+ * 完全にインポートが完了するまでさわらない
+ * 
+ * Ｒ２へのファイルアップロードはHttpで直接実施（API経由しない）
+ * 
+ */
+
 import { getDB } from "@/lib/utils/db";
 import { aplineBase } from "@/db/schema/aplineBase";
 import { aplineFileStore } from "@/db/schema/aplineSubTables";
