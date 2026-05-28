@@ -7,7 +7,7 @@ import type { UserSettings, StoredTokens } from "@/types/user";
 import { updateUserProfile } from "@/src/service/user.service"
 import { createUser, getUserFromUserId } from "@/src/service/user.service";
 import type { NewUserCreateRequest } from "@/src/service/user.service";
-import { USER_DEFAULT_SETTINGS } from "@/src/constants/settings";
+import { DEFAULT_USER_SETTINGS } from "@/src/constants/settings";
 
 // 新規ユーザー作成
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const user: NewUserCreateRequest = await request.json();
 
   const newUser: UserSettings = {
-    ...USER_DEFAULT_SETTINGS,
+    ...DEFAULT_USER_SETTINGS,
     name: user.name,
     email: user.email,
     role: user.role,

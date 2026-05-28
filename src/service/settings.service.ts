@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { getKV } from "@/lib/utils/kv";
-import { USER_DEFAULT_SETTINGS } from "@/src/constants/settings";
+import { DEFAULT_USER_SETTINGS } from "@/src/constants/settings";
 import { UserSettings, StoredTokens } from "@/types/user";
 import { getJstDateTimeString } from "@/lib/utils/date";
 import bcrypt from "bcryptjs";
@@ -120,7 +120,7 @@ export async function initializeUserSettings(userId: string): Promise<UserSettin
   if (existing) return existing;
 
   const settings: UserSettings = {
-    ...USER_DEFAULT_SETTINGS,
+    ...DEFAULT_USER_SETTINGS,
     id: userId,
   };
 
