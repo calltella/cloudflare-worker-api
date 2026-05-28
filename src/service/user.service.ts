@@ -10,6 +10,7 @@ import { getUserSettings, putUserSettings } from "@/src/service/settings.service
 import { getJstDateTimeString } from "@/lib/utils/date";
 import { UserSettings } from "@/types/user";
 import type { UserRole } from "@/types/user";
+import { DEFAULT_USER_SETTINGS } from "@/src/constants/settings";
 
 /**
  * 共通DB取得
@@ -354,32 +355,11 @@ export async function updateAplineUser(
     .returning();
 }
 
-/**
- * テーマモード更新
- */
-// export async function updateTheme(
-//   userId: string,
-//   themeMode: ThemeMode
-// ) {
-//   const kv = await getUserSettings(userId);
-
-//   if (!kv) { throw new Error("User settings not found"); }
-
-//   const settings: UserSettings = {
-//     ...kv,
-//     themeMode: themeMode,
-//     createdAt: getJstDateTimeString(),
-//   };
-
-//   await putUserSettings(userId, settings);
-//   return settings;
-// }
-
-
 export type NewUserCreateRequest = {
   name: string;
   email: string;
   role: UserRole;
+  avatarURL: string;
 }
 
 /**
@@ -387,9 +367,7 @@ export type NewUserCreateRequest = {
  * @param user 
  * @returns 
  */
-export async function createUser(
-  user: NewUserCreateRequest,
-): Promise<string> { // ✅ null を返さず throw する
+export async function createUser(user: NewUserCreateRequest): Promise<UserSettings> {
   const database = await db();
 
   // ✅ メールアドレス重複チェック
@@ -410,6 +388,7 @@ export async function createUser(
         name: user.name,
         email: user.email,
         role: user.role,
+        avatarUrl: user.avatarURL,
         isActive: true,
         createdAt: new Date().toISOString(),
       })
@@ -422,7 +401,13 @@ export async function createUser(
       type: "credentials",
     });
 
-    return created.id;
+    return {
+      ...DEFAULT_USER_SETTINGS,
+      id: created.id,
+      name: created.name,
+      email: created.email,
+      role: created.role
+    };
 
   } catch (error) {
     // D1のUNIQUE制約エラーもカバー

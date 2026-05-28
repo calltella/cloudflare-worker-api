@@ -4,7 +4,7 @@ import { getAplineUser, getUserWithAccount } from "@/src/service/user.service";
 import { requireAuth } from "@/lib/utils/auth";
 import { NextRequest, NextResponse } from "next/server";
 
-// ログインIDからAplineUserIDを取得
+// ログインIDからAplineUserIDを取得（GETに変える）
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;

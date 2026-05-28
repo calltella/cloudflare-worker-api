@@ -5,6 +5,11 @@ import { getUserListsWithAccount, updateUserAuth, deleteUser } from "@/src/servi
 import { NextRequest, NextResponse } from "next/server";
 import type { updateUserAuthority, deleteUserAuthority } from "@/src/service/user.service";
 
+/**
+ * 管理者用ユーザーリスト出力
+ * @param request 
+ * @returns 
+ */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
