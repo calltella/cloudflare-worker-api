@@ -15,7 +15,6 @@ export async function POST(
 
   try {
     const formData = await request.formData();
-    // console.log(request.headers.get("content-type"));
     for (const [key, value] of formData.entries()) {
       console.log(`content-type : key:${key} value:${value}`);
     }
@@ -81,7 +80,9 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      file: { key: result.key, fileName: result.fileName, url: result.url, },
+      data: {
+        file: { key: result.key, fileName: result.fileName, url: result.url, }
+      }
     });
   } catch (error) {
     console.error(error);
@@ -99,18 +100,14 @@ export async function DELETE(
   request: NextRequest
 ) {
   const auth = await requireAuth(request);
-
   if (!auth.ok) { return auth.response; }
 
   try {
     const body = await request.json();
-
     const key = body.key;
-
     const bucketType = body.bucketType;
 
-    if (typeof key !== "string"
-    ) {
+    if (typeof key !== "string") {
       return NextResponse.json(
         { message: "key is required", }, { status: 400, }
       );
