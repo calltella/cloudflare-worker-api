@@ -44,9 +44,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (items.length === 0 || items.length > 5) {
+    if (items.length === 0 || items.length > 20) {
       return NextResponse.json(
-        { error: "受取れる件数は1～5件です" },
+        { error: "受取れる件数は1～20件です" },
         { status: 400 }
       );
     }
