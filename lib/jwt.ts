@@ -1,5 +1,6 @@
 // lib/jwt.ts
 import { SignJWT, jwtVerify, JWTPayload } from "jose";
+import { randomBytes } from "crypto";
 
 const SECRET = new TextEncoder().encode(process.env.JWT_SECRET!)
 
@@ -28,8 +29,7 @@ export async function signAccessToken(payload: JWTPayload) {
 }
 
 export async function signRefreshToken() {
-  // ランダムトークン（JWTじゃなくてOK）
-  return crypto.randomUUID();
+  return randomBytes(32).toString("base64url");
 }
 
 // アクセストークンを検証

@@ -3,10 +3,9 @@
 import bcrypt from "bcryptjs"
 import { signAccessToken, signRefreshToken } from "@/lib/jwt";
 import { findUserByEmail } from "@/src/service/user.service";
-import { initializeUserSettings, putSessionToken, deleteSessionToken } from "@/src/service/settings.service";
+import { initializeUserSettings, putSessionToken } from "@/src/service/settings.service";
 import { NextRequest, NextResponse } from "next/server";
 import { StoredTokens } from "@/types/user";
-import { requireAuth } from "@/lib/utils/auth";
 
 type LoginRequest = {
   email: string
@@ -75,14 +74,4 @@ export async function POST(request: NextRequest) {
       refreshToken: refreshToken,
     }
   });
-}
-
-// KV保存セッション情報を削除
-export async function DELETE(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (!auth.ok) return auth.response;
-  console.log(`deleteUserSettings: ${auth.user.sub}`)
-  await deleteSessionToken(auth.user.sub);
-
-  return NextResponse.json({ success: true });
 }

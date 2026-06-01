@@ -2,7 +2,6 @@ import bcrypt from "bcryptjs";
 import { signAccessToken, decodeAccessTokenIgnoreExpiry } from "@/lib/jwt";
 import { getSessionToken } from "@/src/service/settings.service";
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/utils/auth";
 import { putSessionToken } from "@/src/service/settings.service";
 
 type RefreshRequest = {
