@@ -67,10 +67,11 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
 
+  // 送信されてきたIDは信用しない
   const body: UserSettings = await request.json();
 
   // DBから現在のユーザーデータを取得（ベースにする）
-  const currentUser = await getUserFromUserId(body.id);
+  const currentUser = await getUserFromUserId(auth.user.sub);
   if (!currentUser) {
     return NextResponse.json({ success: false, message: "ユーザーが存在しません" }, { status: 404 });
   }
