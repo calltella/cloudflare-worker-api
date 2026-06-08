@@ -37,14 +37,14 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
-    console.log(`認証OK`)
+    //console.log(`認証OK`)
 
     // =========================
     // body取得
     // =========================
     const body = await req.json();
 
-    console.log(`body: ${JSON.stringify(body)}`)
+    console.log(`FileImport: ${body.file_name}`)
     if (!body?.data) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
