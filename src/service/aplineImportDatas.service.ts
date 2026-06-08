@@ -49,8 +49,8 @@ export async function insertAplineBaseData(params: any[]) {
           : getJstDateTimeString();
 
       const { createdAt: _c, updatedAt: _u, ...safeMapped } = mapped;
-      console.log(`safeMapped Data: ${JSON.stringify(mapped)}`);
-      console.log(`createdAt: ${JSON.stringify(createdAt)}`);
+      console.log(`safeMapped Data: ${JSON.stringify(mapped.id)}`);
+      //console.log(`createdAt: ${JSON.stringify(createdAt)}`);
 
       if (existing) {
         // Update

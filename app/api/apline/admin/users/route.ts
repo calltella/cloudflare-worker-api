@@ -35,7 +35,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     await deleteUser(deleteAuth, auth.user.sub);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error(`deleteUser error: ${error}`);
+    //console.error(`deleteUser error: ${error}`);
     return NextResponse.json({ success: false }, { status: 500 });
   }
 }

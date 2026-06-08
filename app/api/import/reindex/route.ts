@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    console.log(`Reindex 認証OK`);
+    //console.log(`Reindex 認証OK`);
 
     // =========================
     // body取得
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
         tasks.push(
           getReindexAplineBase(currentId)
             .then((res) => {
-              console.log(`✅ success: ${currentId}`);
+              //console.log(`✅ success: ${currentId}`);
               return { id: currentId, success: true, data: res };
             })
             .catch((err) => {
