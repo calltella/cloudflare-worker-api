@@ -38,19 +38,30 @@ jobs:
       - name: Deploy to Cloudflare
         run: npx wrangler deploy
 
-      - name: Set Cloudflare Secrets
+      - name: Set Cloudflare Secrets (bulk)
         run: |
-          echo "${{ secrets.R2_ACCESS_KEY_ID }}" | npx wrangler secret put R2_ACCESS_KEY_ID
-          echo "${{ secrets.R2_ACCESS_KEY_ID_PRIVATE_S3 }}" | npx wrangler secret put R2_ACCESS_KEY_ID_PRIVATE_S3
-          echo "${{ secrets.R2_SECRET_ACCESS_KEY }}" | npx wrangler secret put R2_SECRET_ACCESS_KEY
-          echo "${{ secrets.R2_SECRET_ACCESS_KEY_S3 }}" | npx wrangler secret put R2_SECRET_ACCESS_KEY_S3
-          echo "${{ secrets.MAILGUN_API_KEY }}" | npx wrangler secret put MAILGUN_API_KEY
-          echo "${{ secrets.MAILGUN_DOMAIN }}" | npx wrangler secret put MAILGUN_DOMAIN
-          echo "${{ secrets.MAIL_FROM }}" | npx wrangler secret put MAIL_FROM
-          echo "${{ secrets.NEXT_PUBLIC_IMAGE_BASE_URL }}" | npx wrangler secret put NEXT_PUBLIC_IMAGE_BASE_URL
-          echo "${{ secrets.R2_BUCKET }}" | npx wrangler secret put R2_BUCKET
-          echo "${{ secrets.R2_PUBLIC_BUCKET }}" | npx wrangler secret put R2_PUBLIC_BUCKET
-          echo "${{ secrets.CLOUDFLARE_ENV }}" | npx wrangler secret put CLOUDFLARE_ENV
-          echo "${{ secrets.JWT_SECRET }}" | npx wrangler secret put JWT_SECRET 
-          echo "${{ secrets.KV_SIGNING_SECRET }}" | npx wrangler secret put KV_SIGNING_SECRET 
-          echo "${{ secrets.NEXTAUTH_SECRET }}" | npx wrangler secret put NEXTAUTH_SECRET
+          npx wrangler secret bulk <<EOF
+          {
+            "R2_ACCESS_KEY_ID":              "${{ secrets.R2_ACCESS_KEY_ID }}",
+            "R2_ACCESS_KEY_ID_PRIVATE_S3":   "${{ secrets.R2_ACCESS_KEY_ID_PRIVATE_S3 }}",
+            "R2_SECRET_ACCESS_KEY":          "${{ secrets.R2_SECRET_ACCESS_KEY }}",
+            "R2_SECRET_ACCESS_KEY_S3":       "${{ secrets.R2_SECRET_ACCESS_KEY_S3 }}",
+            "R2_BUCKET":                     "${{ secrets.R2_BUCKET }}",
+            "R2_PUBLIC_BUCKET":              "${{ secrets.R2_PUBLIC_BUCKET }}",
+            "MAILGUN_API_KEY":               "${{ secrets.MAILGUN_API_KEY }}",
+            "MAILGUN_DOMAIN":                "${{ secrets.MAILGUN_DOMAIN }}",
+            "MAIL_FROM":                     "${{ secrets.MAIL_FROM }}",
+            "CLOUDFLARE_ENV":                "${{ secrets.CLOUDFLARE_ENV }}",
+            "JWT_SECRET":                    "${{ secrets.JWT_SECRET }}",
+            "KV_SIGNING_SECRET":             "${{ secrets.KV_SIGNING_SECRET }}",
+            "API_SERVER_EMAIL":              "${{ secrets.API_SERVER_EMAIL }}",
+            "API_SERVER_PASSWORD":           "${{ secrets.API_SERVER_PASSWORD }}",
+            "API_URL_BASE":                  "${{ secrets.API_URL_BASE }}",
+            "NEXTAUTH_SECRET":               "${{ secrets.NEXTAUTH_SECRET }}",
+            "AUTH_URL":                      "${{ secrets.AUTH_URL }}",
+            "AUTH_TRUST_HOST":               "${{ secrets.AUTH_TRUST_HOST }}"
+          }
+          EOF
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
