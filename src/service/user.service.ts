@@ -5,7 +5,6 @@ import * as dz from "drizzle-orm";
 import { getDB } from "@/lib/utils/db";
 import { users, account, loginHistories, sessions, aplineUsers } from "@/db/schema/users";
 import { type NewLoginHistory } from "@/db/schema/users";
-import { auth } from "@/lib/auth.config";
 import { getUserSettings, putUserSettings } from "@/src/service/settings.service";
 import { getJstDateTimeString } from "@/lib/utils/date";
 import { UserSettings } from "@/types/user";
@@ -64,7 +63,7 @@ export async function getOtherUsers(userId: string) {
 /**
  * 管理者用ユーザーリスト取得
  */
-export async function getUserWithAccount() {
+export async function getUserListsWithAccount() {
   const db = await getDB();
 
   const results = await db
@@ -91,6 +90,34 @@ export async function getUserWithAccount() {
 }
 
 /**
+ * User,Account取得
+ */
+export async function getUserWithAccount(userId: string) {
+  const db = await getDB();
+
+  const results = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      role: users.role,
+      isActive: users.isActive,
+      avatarUrl: users.avatarUrl,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+
+      aplineUserId: aplineUsers.id,
+      aplineUserName: aplineUsers.displayName,
+    })
+    .from(users)
+    .where(dz.eq(users.id, userId))
+    .leftJoin(account, dz.eq(users.id, account.userId))
+    .leftJoin(aplineUsers, dz.eq(account.aplineUserId, aplineUsers.id))
+
+  return results[0] ?? null;
+}
+
+/**
  * User一覧取得
  */
 // export async function getUserLists() {
@@ -112,21 +139,6 @@ export async function getUserWithAccount() {
 
 //   return result ?? null;
 // }
-
-/**
- * ハッシュパスワード取得
- */
-export async function getHashPassword(userId: string): Promise<string | null> {
-  const database = await db();
-
-  const result = await database
-    .select({ passwordHash: users.passwordHash })
-    .from(users)
-    .where(dz.eq(users.id, userId))
-    .limit(1);
-
-  return result[0]?.passwordHash ?? null;
-}
 
 /**
  * アカウント取得(auth.session)
@@ -229,31 +241,6 @@ export async function updateUserAvatar(
 //   await putUserSettings(userId, settings);
 //   return settings;
 // }
-
-export type updateUserHashPassword = {
-  id: string;
-  hashPassword: string;
-}
-
-/**
- * パスワード更新
- */
-export async function updateUserPassword(
-  user: updateUserHashPassword
-) {
-
-  const database = await db();
-
-  const result = await database
-    .update(users)
-    .set({ passwordHash: user.hashPassword })
-    .where(dz.eq(users.id, user.id))
-    .returning();
-  if (result.length === 0) {
-    throw new Error("削除対象が見つかりません");
-  }
-  return result;
-}
 
 /**
  * プロフィール更新
@@ -411,7 +398,7 @@ export async function deleteUser(
   adminUserId: string
 ) {
   const currentUser = await requireAdmin(adminUserId);
-  if (currentUser.role !== "admin") {
+  if (currentUser?.role !== "admin") {
     throw new Error("削除権限がありません");
   }
   if (deleteUserId.id === adminUserId) {

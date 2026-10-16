@@ -3,8 +3,7 @@
 import { requireAuth } from "@/lib/utils/auth";
 import { NextRequest, NextResponse } from "next/server";
 import type { updateUserAplineConn } from "@/src/service/user.service";
-import type { updateUserHashPassword } from "@/src/service/user.service";
-import { updateAplineUser, updateUserPassword } from "@/src/service/user.service";
+import { updateAplineUser } from "@/src/service/user.service";
 
 // ユーザデータ更新
 export async function PUT(
@@ -12,6 +11,7 @@ export async function PUT(
 ) {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
+  if (auth.user.role !== "admin") return new NextResponse("Forbidden", { status: 403 });
 
   const userAuth = (await request.json()) as updateUserAplineConn;
 
@@ -19,24 +19,14 @@ export async function PUT(
   return NextResponse.json({ success: true });
 }
 
-/**
- * パスワード再設定
- * @param request 
- * @returns 
- */
-export async function POST(
-  request: NextRequest
-) {
+// D1 password hashes are no longer authentication credentials.
+// Reset passwords through Supabase Auth recovery/admin tooling.
+export async function POST(request: NextRequest) {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
-
-  const userPassword = (await request.json()) as updateUserHashPassword;
-
-  try {
-    await updateUserPassword(userPassword);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error(`deleteUser error: ${error}`);
-    return NextResponse.json({ success: false }, { status: 500 });
-  }
+  if (auth.user.role !== "admin") return new NextResponse("Forbidden", { status: 403 });
+  return NextResponse.json(
+    { success: false, message: "パスワード再設定はSupabase Authで実施してください。D1のハッシュ更新APIは廃止しました。" },
+    { status: 410 },
+  );
 }

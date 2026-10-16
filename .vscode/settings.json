@@ -38,9 +38,13 @@
     "**/node_modules/**": true,
     "**/.git/**": true,
     "**/.wrangler/**": true,
-    "**/dist/**": true
+    "**/dist/**": true,
+    "**/.next/**": true
   },
-
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.next": true
+  },
   
   // ✅ TS Server 高速化（超重要）
   "js/ts.tsserver.maxMemory": 4096,

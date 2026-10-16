@@ -21,9 +21,10 @@ COPY --chown=node:node . .
 
 USER node
 
-EXPOSE 8787
+#EXPOSE 8787
 
 # コンテナ作成（手動作成）
 # docker build -t cloudflare-worker-api .
 # docker network create --driver bridge --subnet 192.168.10.64/27 --gateway 192.168.10.65 docker_vercel_network
 # docker run -d --name cloudflare-worker-api --network docker_vercel_network cloudflare-worker-api tail -f /dev/null
+# docker run -d -v node_modules_cwa:/app/node_modules --name cloudflare-worker-api --network docker_vercel_network cloudflare-worker-api tail -f /dev/null

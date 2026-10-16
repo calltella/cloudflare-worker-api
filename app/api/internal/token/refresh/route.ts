@@ -1,58 +1,21 @@
-import bcrypt from "bcryptjs";
-import { signAccessToken } from "@/lib/jwt";
-import { getSessionToken } from "@/src/service/settings.service";
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/utils/auth";
-import { putSessionToken } from "@/src/service/settings.service";
-
-type RefreshRequest = {
-  refreshToken: string;
-};
+import { createSupabaseAuthClient, findApplicationUser, sessionTokens, AUTH_RESPONSE_HEADERS } from "@/lib/supabase";
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (!auth.ok) return auth.response;
-
-  const body = (await request.json()) as RefreshRequest;
-  const { refreshToken } = body;
-
-  if (!auth.user.sub || !refreshToken) {
-    return new NextResponse("Bad Request", { status: 400 });
+  const body = await request.json().catch(() => null);
+  if (typeof body?.refreshToken !== "string" || !body.refreshToken) {
+    return NextResponse.json({ message: "Refresh token is required" }, { status: 400, headers: AUTH_RESPONSE_HEADERS });
   }
 
-  console.log(`RefreshToken Get KV Session`);
-  // KVからセッション取得
-  const session = await getSessionToken(auth.user.sub);
-  if (!session) {
-    return new NextResponse("Unauthorized: No session", { status: 401 });
+  // An expired access token must not prevent refresh. Supabase validates the refresh token.
+  const supabase = createSupabaseAuthClient();
+  const { data, error } = await supabase.auth.refreshSession({ refresh_token: body.refreshToken });
+  if (error || !data.session || !data.user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401, headers: AUTH_RESPONSE_HEADERS });
   }
-
-  // リフレッシュトークンの有効期限チェック（bcrypt前に確認）
-  if (session.refreshTokenExpiry <= Date.now()) {
-    return new NextResponse("Unauthorized: Token expired", { status: 401 });
+  if (!await findApplicationUser(data.user)) {
+    await supabase.auth.signOut({ scope: "local" });
+    return NextResponse.json({ message: "Forbidden" }, { status: 403, headers: AUTH_RESPONSE_HEADERS });
   }
-
-  // ✅ 平文とハッシュを比較
-  const isValid = await bcrypt.compare(refreshToken, session.refreshToken);
-  if (!isValid) {
-    return new NextResponse("Unauthorized: Invalid token", { status: 401 });
-  }
-
-  const now = Date.now();
-
-  // ✅ スコープを外に出す
-  const newAccessToken = await signAccessToken({ sub: auth.user.sub });
-
-  // ✅ KVのアクセストークンを更新
-  await putSessionToken(auth.user.sub, {
-    ...session,
-    accessToken: newAccessToken,
-    accessTokenExpiry: now + 14 * 60 * 1000,
-    refreshTokenExpiry: now + 7 * 24 * 60 * 60 * 1000,
-  });
-
-  console.log(`RefreshToken issue`);
-  return NextResponse.json({
-    accessToken: newAccessToken,
-  });
+  return NextResponse.json(sessionTokens(data.session), { headers: AUTH_RESPONSE_HEADERS });
 }

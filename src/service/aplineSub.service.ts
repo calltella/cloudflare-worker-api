@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth.config";
+import { auth } from "@/lib/auth.server";
 import { getDB } from "@/lib/utils/db";
 import { eq, desc, and, aliasedTable, sql, isNotNull, isNull, inArray } from "drizzle-orm";
 import * as aplineSubtables from "@/db/schema/aplineSubTables";
@@ -160,6 +160,7 @@ export async function saveFileMetadata(
 export async function getAplineDraftsExists(articleId: number) {
 
   const session = await auth();
+  if (!session?.user.id) throw new Error("Unauthorized");
   const db = await getDB();
   console.log(`${session?.user.id}`)
 
@@ -168,7 +169,7 @@ export async function getAplineDraftsExists(articleId: number) {
     .from(aplineDrafts)
     .where(
       and(
-        eq(aplineDrafts.userId, 'ac20cc34-1d60-4aeb-8755-2097c9311302'),
+        eq(aplineDrafts.userId, session.user.id),
         eq(aplineDrafts.articleId, articleId)
       )
     );
@@ -178,6 +179,7 @@ export async function getAplineDraftsExists(articleId: number) {
 export async function updateAplineDrafts(articleId: number) {
   //
   const session = await auth();
+  if (!session?.user.id) throw new Error("Unauthorized");
   const db = await getDB();
 
   await db
@@ -188,19 +190,20 @@ export async function updateAplineDrafts(articleId: number) {
     })
     .where(
       and(
-        eq(aplineDrafts.userId, session?.user.id),
+        eq(aplineDrafts.userId, session.user.id),
         eq(aplineDrafts.articleId, articleId)
       )
     );
 
 }
-export async function insertAplineDrafts(articleId: number) {
-  //
-  const session = await auth();
+
+// 下書きリスト追加
+export async function insertAplineDrafts(userId: string, articleId: number) {
+
   const db = await getDB();
 
   await db.insert(aplineDrafts).values({
-    userId: session?.user.id,
+    userId: userId,
     articleId,
     createdAt: getJstDateTimeString(),
     updatedAt: getJstDateTimeString(),

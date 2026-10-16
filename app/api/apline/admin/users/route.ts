@@ -1,16 +1,17 @@
 // app/api/apline/admin/users/route.ts
 
 import { requireAuth } from "@/lib/utils/auth";
-import { getUserWithAccount, updateUserAuth, deleteUser } from "@/src/service/user.service";
+import { getUserListsWithAccount, updateUserAuth, deleteUser } from "@/src/service/user.service";
 import { NextRequest, NextResponse } from "next/server";
 import type { updateUserAuthority, deleteUserAuthority } from "@/src/service/user.service";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
+  if (auth.user.role !== "admin") return new NextResponse("Forbidden", { status: 403 });
   //console.log(`auth: ${JSON.stringify(auth)}`);
   // 
-  const res = await getUserWithAccount();
+  const res = await getUserListsWithAccount();
   //console.log(`res: ${JSON.stringify(res)}`);
   return NextResponse.json({ success: true, data: res });
 }
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
+  if (auth.user.role !== "admin") return new NextResponse("Forbidden", { status: 403 });
 
   const deleteUserId = (await request.json()) as deleteUserAuthority;
 
@@ -39,6 +41,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 export async function PUT(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
+  if (auth.user.role !== "admin") return new NextResponse("Forbidden", { status: 403 });
 
   const userAuth = (await request.json()) as updateUserAuthority;
 

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!auth.ok) return auth.response;
 
   const adminUser = await requireAdmin(auth.user.sub);
-  if (adminUser.role !== "admin") {
+  if (adminUser?.role !== "admin") {
     return NextResponse.json(
       { success: false, message: "Forbidden" },
       { status: 403 }
@@ -32,9 +32,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   };
 
   try {
-    await createUser(newUser);
+    const userId = await createUser(newUser);
     return NextResponse.json(
-      { success: true, message: "ユーザー作成に成功しました。" }
+      { success: true, data: userId }
     );
   } catch (error: unknown) {
     if (error instanceof Error && error.message === "DUPLICATE_EMAIL") {
@@ -53,7 +53,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
-  console.log(`result: ${JSON.stringify(auth)}`);
   if (!auth.ok) return auth.response;
 
   // 
@@ -66,7 +65,9 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
 
-  const user = (await request.json()) as UserSettings;
+  const input = (await request.json()) as UserSettings;
+  // Profile updates cannot impersonate another user or change authorization roles.
+  const user: UserSettings = { ...input, id: auth.user.sub, email: auth.user.email, role: auth.user.role };
 
   await putUserSettings(user)
   await updateUserProfile(user);

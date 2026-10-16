@@ -30,7 +30,6 @@
   },
   "include": [ // TypeScript のコンパイル対象に含めるファイルを指定
     "next-env.d.ts",
-    "next-auth.d.ts",
     "global.d.ts", // typescript にCSSを読ませる
     "db/**/*.ts",
     "src/**/*.ts",

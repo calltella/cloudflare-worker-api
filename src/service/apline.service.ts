@@ -2,7 +2,7 @@
 
 "use server";
 
-import { auth } from "@/lib/auth.config";
+import { auth } from "@/lib/auth.server";
 import { getDB } from "@/lib/utils/db";
 import * as dz from "drizzle-orm";
 

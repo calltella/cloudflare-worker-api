@@ -1,88 +1,48 @@
-// api/token/route.ts
-
-import bcrypt from "bcryptjs"
-import { signAccessToken, signRefreshToken } from "@/lib/jwt";
-import { findUserByEmail } from "@/src/service/user.service";
-import { initializeUserSettings, putSessionToken, deleteSessionToken } from "@/src/service/settings.service";
 import { NextRequest, NextResponse } from "next/server";
-import { StoredTokens } from "@/types/user";
-import { requireAuth } from "@/lib/utils/auth";
-
-type LoginRequest = {
-  email: string
-  password: string
-}
+import { createSupabaseAuthClient, findApplicationUser, sessionTokens, AUTH_RESPONSE_HEADERS } from "@/lib/supabase";
+import { initializeUserSettings } from "@/src/service/settings.service";
+import { getRequestMeta } from "@/lib/auth.server";
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json()) as LoginRequest
-  const { email, password } = body
-
-  const now = Date.now();
-
-  const dummyHash = "$2a$10$CwTycUXWue0Thq9StjUM0uJ8eFQ6h0eK1TKoEt1T9Fp1hJpG6tK9G"
-
-  const user = await findUserByEmail(email)
-  const passwordHash = user?.passwordHash ?? dummyHash
-
-  const isValid = await bcrypt.compare(password, passwordHash)
-
-  if (!isValid || !user) {
-    return new NextResponse("Unauthorized", { status: 401 })
+  const body = await request.json().catch(() => null);
+  if (typeof body?.email !== "string" || typeof body?.password !== "string" || !body.email || !body.password) {
+    return NextResponse.json({ message: "Email and password are required" }, { status: 400, headers: AUTH_RESPONSE_HEADERS });
   }
 
-  // ✅ Access Token
-  const accessToken = await signAccessToken({
-    sub: user.id,
-    role: user.role,
-  })
+  const supabase = createSupabaseAuthClient();
+  const { data, error } = await supabase.auth.signInWithPassword({ email: body.email, password: body.password });
+  if (error || !data.session || !data.user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401, headers: AUTH_RESPONSE_HEADERS });
+  }
 
-  // ✅ Refresh Token
-  const refreshToken = await signRefreshToken()
+  const user = await findApplicationUser(data.user);
+  if (!user) {
+    await supabase.auth.signOut({ scope: "local" });
+    return NextResponse.json({ message: "Forbidden" }, { status: 403, headers: AUTH_RESPONSE_HEADERS });
+  }
 
-  console.log('AccessToken issue');
-
-  // トークンはハッシュ化して保存（セキュリティ対策）
-  const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-
-  // ✅ KV保存
   const setting = await initializeUserSettings(user.id);
-
-  const newStored: StoredTokens = {
-    accessToken: accessToken,
-    refreshToken: hashedRefreshToken,
-    accessTokenExpiry: now + 14 * 60 * 1000,
-    refreshTokenExpiry: now + 7 * 24 * 60 * 60 * 1000, // 使うたびに延長
-  };
-
-  await putSessionToken(user.id, newStored)
-
-  console.log(`newStored: ${JSON.stringify(newStored)}`);
-  console.log(`setting: ${JSON.stringify(setting)}`);
-
+  await getRequestMeta(user);
   return NextResponse.json({
     user: {
+      ...setting,
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
-      avatarURL: setting.avatarURL,
-      themeMode: setting.themeMode,
-      colorThemes: setting.colorThemes,
-      defaultView: setting.defaultView,
     },
-    tokens: {
-      ...newStored,
-      refreshToken: refreshToken,
-    }
-  });
+    tokens: sessionTokens(data.session),
+  }, { headers: AUTH_RESPONSE_HEADERS });
 }
 
-// KV保存セッション情報を削除
 export async function DELETE(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (!auth.ok) return auth.response;
-  console.log(`deleteUserSettings: ${auth.user.sub}`)
-  await deleteSessionToken(auth.user.sub);
-
-  return NextResponse.json({ success: true });
+  const token = request.headers.get("authorization")?.match(/^Bearer ([^\s]+)$/i)?.[1];
+  if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401, headers: AUTH_RESPONSE_HEADERS });
+  const supabase = createSupabaseAuthClient();
+  const { data, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !data.user) return NextResponse.json({ message: "Unauthorized" }, { status: 401, headers: AUTH_RESPONSE_HEADERS });
+  // Uses the user's JWT, not a service-role key. Revokes this session's refresh tokens.
+  const { error } = await supabase.auth.admin.signOut(token, "local");
+  if (error) return NextResponse.json({ message: "Sign out failed" }, { status: 502, headers: AUTH_RESPONSE_HEADERS });
+  return NextResponse.json({ success: true }, { headers: AUTH_RESPONSE_HEADERS });
 }

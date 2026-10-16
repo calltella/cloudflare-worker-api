@@ -1,44 +1,30 @@
-// app/api/user/password/route.ts
-
-import bcrypt from "bcryptjs";
 import { requireAuth } from "@/lib/utils/auth";
 import { NextRequest, NextResponse } from "next/server";
-import { updateUserPassword, getHashPassword } from "@/src/service/user.service";
+import { createSupabaseAuthClient, AUTH_RESPONSE_HEADERS } from "@/lib/supabase";
 
-type ChangePasswordRequest = {
-  currentPassword: string;
-  newPassword: string;
-};
-
-// パスワード変更
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
 
-  const hashPassword = await getHashPassword(auth.user.sub);
-  if (!hashPassword) {
-    return NextResponse.json(
-      { success: false, message: "Forbidden" },
-      { status: 403 }
-    );
+  const body = await request.json().catch(() => null);
+  if (typeof body?.currentPassword !== "string" || typeof body?.newPassword !== "string" || body.newPassword.length < 8) {
+    return NextResponse.json({ success: false, message: "パスワードは8文字以上で指定してください" }, { status: 400, headers: AUTH_RESPONSE_HEADERS });
   }
 
-  const body = (await request.json()) as ChangePasswordRequest;
-  const { currentPassword, newPassword } = body;
-
-  // ✅ 引数の順番を修正
-  const isValid = await bcrypt.compare(currentPassword, hashPassword);
-
-  if (!isValid) {
-    return NextResponse.json(
-      { success: false, message: "現在のパスワードが正しくありません" },
-      { status: 401 }
-    );
+  // Reauthenticate using the current password, without using an admin/service-role key.
+  const supabase = createSupabaseAuthClient();
+  const { data, error } = await supabase.auth.signInWithPassword({ email: auth.user.email, password: body.currentPassword });
+  if (error || !data.user || data.user.id !== auth.user.supabaseId) {
+    return NextResponse.json({ success: false, message: "現在のパスワードが正しくありません" }, { status: 401, headers: AUTH_RESPONSE_HEADERS });
   }
-
-  // 新しいパスワードをハッシュ化して保存
-  const newHashedPassword = await bcrypt.hash(newPassword, 10);
-  const user = await updateUserPassword({ id: auth.user.sub, hashPassword: newHashedPassword });
-
-  return NextResponse.json({ success: true, data: user });
+  try {
+    const { error: updateError } = await supabase.auth.updateUser({ password: body.newPassword });
+    if (updateError) {
+      return NextResponse.json({ success: false, message: "パスワードを変更できませんでした。Supabaseのパスワードポリシーを確認してください" }, { status: 400, headers: AUTH_RESPONSE_HEADERS });
+    }
+    return NextResponse.json({ success: true }, { headers: AUTH_RESPONSE_HEADERS });
+  } finally {
+    // Dispose of the temporary password-confirmation session only.
+    await supabase.auth.signOut({ scope: "local" });
+  }
 }

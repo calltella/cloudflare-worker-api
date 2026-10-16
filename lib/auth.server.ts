@@ -1,6 +1,6 @@
 // lib/auth.server.ts
 import { headers } from "next/headers";
-import { saveAuthLoginHistory } from "@/lib/utils/auth";
+import { authenticateBearer, saveAuthLoginHistory } from "@/lib/utils/auth";
 import type { User } from "@/db/schema/users";
 import { initializeUserSettings } from "@/src/service/settings.service";
 
@@ -15,8 +15,7 @@ export async function getRequestMeta(user: User) {
     });
 
     // ユーザー設定の初期化
-    const setting = await initializeUserSettings(user.id);
-    console.log(`settings initialized for user ${user.id}:`, setting);
+    await initializeUserSettings(user.id);
 
   } catch (error) {
     // ログイン自体は失敗させない
@@ -24,3 +23,12 @@ export async function getRequestMeta(user: User) {
   }
 }
 
+
+// Compatibility for services that previously read a NextAuth cookie session.
+// API services now use the verified bearer identity of the current request.
+export async function auth() {
+  const headerList = await headers();
+  const result = await authenticateBearer(headerList.get("authorization"));
+  if (!result.ok) return null;
+  return { user: { id: result.user.sub, role: result.user.role, email: result.user.email, name: result.user.name } };
+}
